@@ -1200,12 +1200,12 @@ GET  /api/hardware/serial/{id}  # Get serial monitor output (SSE)
 
 **Goal:** Skeleton up, blocks rendering, basic plumbing.
 
-- [ ] Initialize repo (React + Vite + FastAPI)
-- [ ] Set up Blockly workspace with 5-6 custom blocks (Goal, Feature, Agent, Deploy)
-- [ ] Block canvas renders and blocks snap together
-- [ ] Block interpreter serializes block tree to JSON
-- [ ] FastAPI skeleton with WebSocket endpoint
-- [ ] Basic frontend-backend WebSocket connection
+- [x] Initialize repo (React + Vite + FastAPI)
+- [x] Set up Blockly workspace with 5-6 custom blocks (Goal, Feature, Agent, Deploy)
+- [x] Block canvas renders and blocks snap together
+- [x] Block interpreter serializes block tree to JSON
+- [x] FastAPI skeleton with WebSocket endpoint
+- [x] Basic frontend-backend WebSocket connection
 
 ### Day 2 — Wednesday Feb 11
 
