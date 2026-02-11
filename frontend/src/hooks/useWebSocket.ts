@@ -6,9 +6,14 @@ interface UseWebSocketOptions {
   onEvent: (event: WSEvent) => void;
 }
 
+const MAX_RETRIES = 10;
+const BASE_DELAY_MS = 1000;
+const MAX_DELAY_MS = 30000;
+
 export function useWebSocket({ sessionId, onEvent }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retriesRef = useRef(0);
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
 
@@ -20,6 +25,7 @@ export function useWebSocket({ sessionId, onEvent }: UseWebSocketOptions) {
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
+      retriesRef.current = 0;
       onEventRef.current({ type: 'session_started', session_id: sessionId });
     };
 
@@ -32,15 +38,26 @@ export function useWebSocket({ sessionId, onEvent }: UseWebSocketOptions) {
       }
     };
 
+    ws.onerror = () => {
+      // Error details are intentionally hidden by browsers; onclose handles reconnect
+    };
+
     ws.onclose = () => {
       wsRef.current = null;
-      reconnectTimer.current = setTimeout(connect, 3000);
+      if (retriesRef.current >= MAX_RETRIES) {
+        console.warn(`WebSocket: gave up after ${MAX_RETRIES} retries for session ${sessionId}`);
+        return;
+      }
+      const delay = Math.min(BASE_DELAY_MS * 2 ** retriesRef.current, MAX_DELAY_MS);
+      retriesRef.current++;
+      reconnectTimer.current = setTimeout(connect, delay);
     };
 
     wsRef.current = ws;
   }, [sessionId]);
 
   useEffect(() => {
+    retriesRef.current = 0;
     connect();
     return () => {
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);

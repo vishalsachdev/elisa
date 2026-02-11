@@ -384,7 +384,7 @@ app.post('/api/hardware/flash/:id', async (req, res) => {
 // -- HTTP + WebSocket Server --
 
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: undefined });
+const wss = new WebSocketServer({ noServer: true });
 
 // Handle WebSocket upgrades on /ws/session/:id
 server.on('upgrade', (request, socket, head) => {
