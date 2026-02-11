@@ -1,0 +1,16 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "name": "Build counter app",
+      "description": "Create a simple counter with increment button",
+      "dependencies": [],
+      "agent_name": "Builder Bot",
+      "acceptance_criteria": ["Page shows a count", "Button increments count"]
+    }
+  ],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot who loves building things" }
+  ],
+  "plan_explanation": "One task to build the counter app."
+}

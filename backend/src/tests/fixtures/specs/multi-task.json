@@ -1,0 +1,20 @@
+{
+  "project": { "goal": "A weather app", "description": "Show weather with refresh", "type": "general" },
+  "requirements": [
+    { "type": "feature", "description": "show current temperature" },
+    { "type": "feature", "description": "show a 5-day forecast" },
+    { "type": "feature", "description": "refresh button to update weather" }
+  ],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot" },
+    { "name": "Styler Bot", "role": "custom", "persona": "A design expert" }
+  ],
+  "deployment": { "target": "web", "auto_flash": false },
+  "workflow": {
+    "review_enabled": false,
+    "testing_enabled": false,
+    "human_gates": [],
+    "flow_hints": [{ "type": "sequential", "descriptions": ["show current temperature", "show a 5-day forecast"] }],
+    "iteration_conditions": []
+  }
+}

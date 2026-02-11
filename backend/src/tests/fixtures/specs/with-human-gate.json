@@ -1,0 +1,15 @@
+{
+  "project": { "goal": "A calculator", "description": "A simple calculator", "type": "general" },
+  "requirements": [{ "type": "feature", "description": "add and subtract numbers" }],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot" }
+  ],
+  "deployment": { "target": "web", "auto_flash": false },
+  "workflow": {
+    "review_enabled": true,
+    "testing_enabled": false,
+    "human_gates": ["Check the calculator looks right"],
+    "flow_hints": [],
+    "iteration_conditions": []
+  }
+}

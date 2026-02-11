@@ -1,0 +1,24 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "name": "Build calculator UI",
+      "description": "Create the calculator interface",
+      "dependencies": [],
+      "agent_name": "Builder Bot",
+      "acceptance_criteria": ["Calculator UI renders"]
+    },
+    {
+      "id": "task-2",
+      "name": "Add math logic",
+      "description": "Implement addition and subtraction",
+      "dependencies": ["task-1"],
+      "agent_name": "Builder Bot",
+      "acceptance_criteria": ["Add works", "Subtract works"]
+    }
+  ],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot" }
+  ],
+  "plan_explanation": "Build the UI first, then add math logic."
+}

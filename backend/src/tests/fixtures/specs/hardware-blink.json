@@ -1,0 +1,19 @@
+{
+  "project": { "goal": "Blink an LED", "description": "Make the LED blink on my board", "type": "hardware" },
+  "requirements": [{ "type": "feature", "description": "blink the LED on and off" }],
+  "hardware": {
+    "target": "esp32",
+    "components": [{ "type": "led", "action": "blink", "speed": "normal" }]
+  },
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot" }
+  ],
+  "deployment": { "target": "esp32", "auto_flash": true },
+  "workflow": {
+    "review_enabled": false,
+    "testing_enabled": false,
+    "human_gates": [],
+    "flow_hints": [],
+    "iteration_conditions": []
+  }
+}

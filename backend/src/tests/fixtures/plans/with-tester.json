@@ -1,0 +1,25 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "name": "Build todo list",
+      "description": "Create a todo list with add and complete functionality",
+      "dependencies": [],
+      "agent_name": "Builder Bot",
+      "acceptance_criteria": ["Can add items", "Can mark items done"]
+    },
+    {
+      "id": "task-2",
+      "name": "Write tests",
+      "description": "Write tests for the todo list",
+      "dependencies": ["task-1"],
+      "agent_name": "Test Bot",
+      "acceptance_criteria": ["Tests cover add and complete"]
+    }
+  ],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot" },
+    { "name": "Test Bot", "role": "tester", "persona": "A careful checker" }
+  ],
+  "plan_explanation": "Build the todo list, then test it."
+}

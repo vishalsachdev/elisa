@@ -1,0 +1,41 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "name": "Build temperature display",
+      "description": "Show current temperature",
+      "dependencies": [],
+      "agent_name": "Builder Bot",
+      "acceptance_criteria": ["Shows temperature"]
+    },
+    {
+      "id": "task-2",
+      "name": "Add forecast",
+      "description": "Show 5-day forecast",
+      "dependencies": ["task-1"],
+      "agent_name": "Builder Bot",
+      "acceptance_criteria": ["Shows 5-day forecast"]
+    },
+    {
+      "id": "task-3",
+      "name": "Add refresh button",
+      "description": "Button to refresh weather data",
+      "dependencies": ["task-1"],
+      "agent_name": "Builder Bot",
+      "acceptance_criteria": ["Refresh button works"]
+    },
+    {
+      "id": "task-4",
+      "name": "Style the app",
+      "description": "Make the weather app look good",
+      "dependencies": ["task-2", "task-3"],
+      "agent_name": "Styler Bot",
+      "acceptance_criteria": ["App looks polished"]
+    }
+  ],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot" },
+    { "name": "Styler Bot", "role": "custom", "persona": "A design expert" }
+  ],
+  "plan_explanation": "Build temperature first, then forecast and refresh, finally style."
+}

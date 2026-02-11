@@ -1,0 +1,15 @@
+{
+  "project": { "goal": "A simple counter", "description": "A simple counter app", "type": "general" },
+  "requirements": [{ "type": "feature", "description": "show a count and a button to increment it" }],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot who loves building things" }
+  ],
+  "deployment": { "target": "web", "auto_flash": false },
+  "workflow": {
+    "review_enabled": false,
+    "testing_enabled": false,
+    "human_gates": [],
+    "flow_hints": [],
+    "iteration_conditions": []
+  }
+}

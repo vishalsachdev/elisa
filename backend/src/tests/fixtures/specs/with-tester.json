@@ -1,0 +1,19 @@
+{
+  "project": { "goal": "A todo list", "description": "A todo list app with tests", "type": "general" },
+  "requirements": [
+    { "type": "feature", "description": "add items to a list" },
+    { "type": "feature", "description": "mark items as done" }
+  ],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot" },
+    { "name": "Test Bot", "role": "tester", "persona": "A careful checker" }
+  ],
+  "deployment": { "target": "web", "auto_flash": false },
+  "workflow": {
+    "review_enabled": false,
+    "testing_enabled": true,
+    "human_gates": [],
+    "flow_hints": [],
+    "iteration_conditions": []
+  }
+}

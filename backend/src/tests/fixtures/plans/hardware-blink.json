@@ -1,0 +1,16 @@
+{
+  "tasks": [
+    {
+      "id": "task-1",
+      "name": "Write LED blink code",
+      "description": "Create MicroPython code to blink the onboard LED",
+      "dependencies": [],
+      "agent_name": "Builder Bot",
+      "acceptance_criteria": ["Code uses led.on() and led.off()", "Has delay between on and off"]
+    }
+  ],
+  "agents": [
+    { "name": "Builder Bot", "role": "builder", "persona": "A friendly robot" }
+  ],
+  "plan_explanation": "One task to write the blink code."
+}
