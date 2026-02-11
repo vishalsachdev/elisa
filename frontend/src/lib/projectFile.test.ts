@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import JSZip from 'jszip';
 import { saveProjectFile, loadProjectFile } from './projectFile';
 import type { Skill, Rule } from '../components/Skills/types';
+import type { Portal } from '../components/Portals/types';
 
 const workspace: Record<string, unknown> = {
   blocks: { languageVersion: 0, blocks: [{ type: 'project_goal', fields: { GOAL: 'test' } }] },
@@ -13,6 +14,20 @@ const skills: Skill[] = [
 
 const rules: Rule[] = [
   { id: 'r1', name: 'Lint', prompt: 'Run lint', trigger: 'always' },
+];
+
+const portals: Portal[] = [
+  {
+    id: 'p1',
+    name: 'My ESP32',
+    description: 'An ESP32 board',
+    mechanism: 'serial',
+    status: 'unconfigured',
+    capabilities: [
+      { id: 'led-on', name: 'LED on', kind: 'action', description: 'Turn LED on' },
+    ],
+    serialConfig: { baudRate: 115200, boardType: 'esp32' },
+  },
 ];
 
 // Helper: convert Blob to ArrayBuffer in jsdom (where Blob.arrayBuffer is unavailable)
@@ -31,13 +46,14 @@ function blobToFile(blob: Blob, name: string): File {
 }
 
 describe('saveProjectFile', () => {
-  it('produces a zip with workspace.json, skills.json, and rules.json', async () => {
-    const blob = await saveProjectFile(workspace, skills, rules);
+  it('produces a zip with workspace.json, skills.json, rules.json, and portals.json', async () => {
+    const blob = await saveProjectFile(workspace, skills, rules, portals);
     const zip = await JSZip.loadAsync(await blobToArrayBuffer(blob));
 
     expect(zip.file('workspace.json')).not.toBeNull();
     expect(zip.file('skills.json')).not.toBeNull();
     expect(zip.file('rules.json')).not.toBeNull();
+    expect(zip.file('portals.json')).not.toBeNull();
 
     const ws = JSON.parse(await zip.file('workspace.json')!.async('string'));
     expect(ws.blocks.blocks[0].type).toBe('project_goal');
@@ -49,6 +65,10 @@ describe('saveProjectFile', () => {
     const ru = JSON.parse(await zip.file('rules.json')!.async('string'));
     expect(ru).toHaveLength(1);
     expect(ru[0].name).toBe('Lint');
+
+    const po = JSON.parse(await zip.file('portals.json')!.async('string'));
+    expect(po).toHaveLength(1);
+    expect(po[0].name).toBe('My ESP32');
   });
 
   it('includes project archive files under project/ when provided', async () => {
@@ -57,7 +77,7 @@ describe('saveProjectFile', () => {
     innerZip.file('tests/test_main.py', 'assert True');
     const archiveBlob = await innerZip.generateAsync({ type: 'blob' });
 
-    const blob = await saveProjectFile(workspace, skills, rules, archiveBlob);
+    const blob = await saveProjectFile(workspace, skills, rules, portals, archiveBlob);
     const zip = await JSZip.loadAsync(await blobToArrayBuffer(blob));
 
     expect(zip.file('project/src/main.py')).not.toBeNull();
@@ -67,8 +87,8 @@ describe('saveProjectFile', () => {
     expect(content).toBe('print("hello")');
   });
 
-  it('works with empty skills and rules arrays', async () => {
-    const blob = await saveProjectFile(workspace, [], []);
+  it('works with empty skills, rules, and portals arrays', async () => {
+    const blob = await saveProjectFile(workspace, [], [], []);
     const zip = await JSZip.loadAsync(await blobToArrayBuffer(blob));
 
     const sk = JSON.parse(await zip.file('skills.json')!.async('string'));
@@ -80,8 +100,8 @@ describe('saveProjectFile', () => {
 });
 
 describe('loadProjectFile', () => {
-  it('round-trips workspace, skills, and rules', async () => {
-    const blob = await saveProjectFile(workspace, skills, rules);
+  it('round-trips workspace, skills, rules, and portals', async () => {
+    const blob = await saveProjectFile(workspace, skills, rules, portals);
     const file = blobToFile(blob, 'test.elisa');
 
     const result = await loadProjectFile(file);
@@ -89,6 +109,7 @@ describe('loadProjectFile', () => {
     expect(result.workspace).toEqual(workspace);
     expect(result.skills).toEqual(skills);
     expect(result.rules).toEqual(rules);
+    expect(result.portals).toEqual(portals);
     expect(result.projectArchive).toBeUndefined();
   });
 
@@ -97,7 +118,7 @@ describe('loadProjectFile', () => {
     innerZip.file('src/index.ts', 'console.log("hi")');
     const archiveBlob = await innerZip.generateAsync({ type: 'blob' });
 
-    const blob = await saveProjectFile(workspace, skills, rules, archiveBlob);
+    const blob = await saveProjectFile(workspace, skills, rules, portals, archiveBlob);
     const file = blobToFile(blob, 'test.elisa');
 
     const result = await loadProjectFile(file);
@@ -117,7 +138,7 @@ describe('loadProjectFile', () => {
     await expect(loadProjectFile(file)).rejects.toThrow('Invalid .elisa file: missing workspace.json');
   });
 
-  it('defaults to empty arrays when skills.json and rules.json are missing', async () => {
+  it('defaults to empty arrays when skills.json, rules.json, and portals.json are missing', async () => {
     const zip = new JSZip();
     zip.file('workspace.json', JSON.stringify(workspace));
     const blob = await zip.generateAsync({ type: 'blob' });
@@ -127,5 +148,6 @@ describe('loadProjectFile', () => {
     expect(result.workspace).toEqual(workspace);
     expect(result.skills).toEqual([]);
     expect(result.rules).toEqual([]);
+    expect(result.portals).toEqual([]);
   });
 });

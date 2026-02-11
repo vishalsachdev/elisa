@@ -3,7 +3,9 @@ import * as Blockly from 'blockly';
 import { registerBlocks } from './blockDefinitions';
 import { toolbox } from './toolbox';
 import { updateSkillOptions, updateRuleOptions } from '../Skills/skillsRegistry';
+import { updatePortalOptions } from '../Portals/portalRegistry';
 import type { Skill, Rule } from '../Skills/types';
+import type { Portal } from '../Portals/types';
 
 registerBlocks();
 
@@ -16,11 +18,12 @@ interface BlockCanvasProps {
   readOnly?: boolean;
   skills?: Skill[];
   rules?: Rule[];
+  portals?: Portal[];
   initialWorkspace?: Record<string, unknown> | null;
 }
 
 const BlockCanvas = forwardRef<BlockCanvasHandle, BlockCanvasProps>(
-  function BlockCanvas({ onWorkspaceChange, readOnly = false, skills = [], rules = [], initialWorkspace }, ref) {
+  function BlockCanvas({ onWorkspaceChange, readOnly = false, skills = [], rules = [], portals = [], initialWorkspace }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
     const initialWorkspaceRef = useRef(initialWorkspace);
@@ -87,7 +90,8 @@ const BlockCanvas = forwardRef<BlockCanvasHandle, BlockCanvasProps>(
     useEffect(() => {
       updateSkillOptions(skills);
       updateRuleOptions(rules);
-    }, [skills, rules]);
+      updatePortalOptions(portals);
+    }, [skills, rules, portals]);
 
     useEffect(() => {
       if (!workspaceRef.current) return;

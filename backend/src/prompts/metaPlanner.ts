@@ -99,6 +99,22 @@ The spec may include \`skills\` and \`rules\` arrays containing the kid's custom
 These are injected into agent prompts automatically. Factor them into task planning
 when relevant (e.g., a "before_deploy" rule means the deploy task should include validation).
 
+## Portals
+
+The spec may include a \`portals\` array describing external connections (hardware, APIs, CLI tools, MCP servers).
+Each portal has:
+- \`name\`: A friendly name for the connection
+- \`mechanism\`: How it connects (\`serial\`, \`mcp\`, \`cli\`, or \`auto\`)
+- \`capabilities\`: What actions/events/queries the portal supports
+- \`interactions\`: Which capabilities the kid's blocks actually use
+
+When portals are present:
+- For \`serial\` portals: Include hardware setup, compile, and flash tasks similar to ESP32 rules above. Use the portal's capabilities to determine what the code should do.
+- For \`mcp\` portals: The MCP server will be available to the agent automatically. Include a task to set up and verify the MCP integration.
+- For \`cli\` portals: Include tasks that use the CLI tool. Note the command in the task description.
+- Each portal interaction (\`tell\`, \`when\`, \`ask\`) should map to at least one task or be covered within a broader implementation task.
+- Portal capabilities describe what's available; interactions describe what the kid actually wants to use.
+
 ## Important
 
 - Output ONLY the JSON object. No markdown code fences, no commentary.

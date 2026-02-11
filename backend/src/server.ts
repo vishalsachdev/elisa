@@ -211,6 +211,39 @@ app.get('/api/templates', (_req, res) => {
   res.json([]);
 });
 
+// Portal setup: analyze description and suggest config
+app.post('/api/portals/setup', async (req, res) => {
+  const { description, mechanism } = req.body;
+  if (!description) {
+    res.status(400).json({ detail: 'description is required' });
+    return;
+  }
+  // Return a basic suggestion based on the description
+  // In a future iteration, this would call Claude Sonnet to analyze
+  const suggested: Record<string, any> = {
+    name: description.slice(0, 40),
+    description,
+    mechanism: mechanism ?? 'auto',
+    capabilities: [],
+  };
+  res.json(suggested);
+});
+
+// Portal test: test a portal connection
+app.post('/api/portals/:id/test', async (req, res) => {
+  const { mechanism, serialConfig } = req.body;
+  if (mechanism === 'serial') {
+    const board = await hardwareService.detectBoard();
+    if (board) {
+      res.json({ success: true, message: `Board detected: ${board.boardType} on ${board.port}` });
+    } else {
+      res.json({ success: false, message: 'No board detected. Connect via USB and try again.' });
+    }
+  } else {
+    res.json({ success: true, message: 'Connection test not yet implemented for this mechanism.' });
+  }
+});
+
 // Hardware detect
 app.post('/api/hardware/detect', async (_req, res) => {
   const board = await hardwareService.detectBoard();

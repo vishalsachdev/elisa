@@ -1,4 +1,5 @@
 import type { Skill, Rule } from '../Skills/types';
+import type { Portal } from '../Portals/types';
 
 export interface ProjectSpec {
   project: {
@@ -36,6 +37,17 @@ export interface ProjectSpec {
   };
   skills?: Array<{ id: string; name: string; prompt: string; category: string }>;
   rules?: Array<{ id: string; name: string; prompt: string; trigger: string }>;
+  portals?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    mechanism: string;
+    capabilities: Array<{ id: string; name: string; kind: string; description: string }>;
+    interactions: Array<{ type: 'tell' | 'when' | 'ask'; capabilityId: string }>;
+    mcpConfig?: Record<string, unknown>;
+    cliConfig?: Record<string, unknown>;
+    serialConfig?: Record<string, unknown>;
+  }>;
 }
 
 interface BlockJson {
@@ -71,6 +83,7 @@ export function interpretWorkspace(
   json: Record<string, unknown>,
   skills?: Skill[],
   rules?: Rule[],
+  portals?: Portal[],
 ): ProjectSpec {
   const ws = json as unknown as WorkspaceJson;
   const topBlocks = ws.blocks?.blocks ?? [];
@@ -264,6 +277,39 @@ export function interpretWorkspace(
           if (rule) {
             if (!spec.rules) spec.rules = [];
             spec.rules.push({ id: rule.id, name: rule.name, prompt: rule.prompt, trigger: rule.trigger });
+          }
+        }
+        break;
+      }
+      case 'portal_tell':
+      case 'portal_when':
+      case 'portal_ask': {
+        const portalId = (block.fields?.PORTAL_ID as string) ?? '';
+        const capabilityId = (block.fields?.CAPABILITY_ID as string) ?? '';
+        if (portalId && capabilityId && portals) {
+          const portal = portals.find(p => p.id === portalId);
+          if (portal) {
+            if (!spec.portals) spec.portals = [];
+            let portalEntry = spec.portals.find(p => p.id === portal.id);
+            if (!portalEntry) {
+              portalEntry = {
+                id: portal.id,
+                name: portal.name,
+                description: portal.description,
+                mechanism: portal.mechanism,
+                capabilities: portal.capabilities.map(c => ({
+                  id: c.id, name: c.name, kind: c.kind, description: c.description,
+                })),
+                interactions: [],
+                ...(portal.mcpConfig ? { mcpConfig: portal.mcpConfig as Record<string, unknown> } : {}),
+                ...(portal.cliConfig ? { cliConfig: portal.cliConfig as Record<string, unknown> } : {}),
+                ...(portal.serialConfig ? { serialConfig: portal.serialConfig as Record<string, unknown> } : {}),
+              };
+              spec.portals.push(portalEntry);
+            }
+            const interactionType = block.type === 'portal_tell' ? 'tell'
+              : block.type === 'portal_when' ? 'when' : 'ask';
+            portalEntry.interactions.push({ type: interactionType, capabilityId });
           }
         }
         break;

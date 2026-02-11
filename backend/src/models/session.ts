@@ -82,3 +82,10 @@ export interface QuestionPayload {
   options: Array<{ label: string; description: string }>;
   multiSelect: boolean;
 }
+
+export interface PortalRuntime {
+  id: string;
+  name: string;
+  mechanism: string;
+  status: 'initializing' | 'ready' | 'error';
+}

@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import type { Skill, Rule } from '../components/Skills/types';
+import type { Portal } from '../components/Portals/types';
 
 /** Read a Blob as ArrayBuffer, with FileReader fallback for jsdom. */
 function readBlobAsArrayBuffer(blob: Blob): Promise<ArrayBuffer> {
@@ -18,6 +19,7 @@ export interface ProjectFileData {
   workspace: Record<string, unknown>;
   skills: Skill[];
   rules: Rule[];
+  portals: Portal[];
   projectArchive?: Blob;
 }
 
@@ -29,12 +31,14 @@ export async function saveProjectFile(
   workspace: Record<string, unknown>,
   skills: Skill[],
   rules: Rule[],
+  portals: Portal[],
   projectArchive?: Blob,
 ): Promise<Blob> {
   const zip = new JSZip();
   zip.file('workspace.json', JSON.stringify(workspace, null, 2));
   zip.file('skills.json', JSON.stringify(skills, null, 2));
   zip.file('rules.json', JSON.stringify(rules, null, 2));
+  zip.file('portals.json', JSON.stringify(portals, null, 2));
 
   if (projectArchive) {
     const archiveData = await readBlobAsArrayBuffer(projectArchive);
@@ -62,10 +66,12 @@ export async function loadProjectFile(file: File): Promise<ProjectFileData> {
 
   const skillsJson = await zip.file('skills.json')?.async('string');
   const rulesJson = await zip.file('rules.json')?.async('string');
+  const portalsJson = await zip.file('portals.json')?.async('string');
 
   const workspace = JSON.parse(workspaceJson) as Record<string, unknown>;
   const skills: Skill[] = skillsJson ? JSON.parse(skillsJson) : [];
   const rules: Rule[] = rulesJson ? JSON.parse(rulesJson) : [];
+  const portals: Portal[] = portalsJson ? JSON.parse(portalsJson) : [];
 
   // Extract project/ folder back into a zip blob if present
   let projectArchive: Blob | undefined;
@@ -82,7 +88,7 @@ export async function loadProjectFile(file: File): Promise<ProjectFileData> {
     projectArchive = await innerZip.generateAsync({ type: 'blob' });
   }
 
-  return { workspace, skills, rules, projectArchive };
+  return { workspace, skills, rules, portals, projectArchive };
 }
 
 /**

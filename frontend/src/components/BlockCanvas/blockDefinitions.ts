@@ -1,5 +1,6 @@
 import * as Blockly from 'blockly';
 import { getCurrentSkills, getCurrentRules } from '../Skills/skillsRegistry';
+import { getCurrentPortals } from '../Portals/portalRegistry';
 
 const blockDefs = [
   {
@@ -516,6 +517,77 @@ const blockDefs = [
     helpUrl: '',
     extensions: ['rule_dropdown_extension'],
   },
+  // Portals category (NEW - colour 160, teal)
+  {
+    type: 'portal_tell',
+    message0: 'Tell %1 to %2',
+    args0: [
+      {
+        type: 'field_dropdown',
+        name: 'PORTAL_ID',
+        options: [['(no portals yet)', '']],
+      },
+      {
+        type: 'field_dropdown',
+        name: 'CAPABILITY_ID',
+        options: [['(select portal first)', '']],
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: 160,
+    tooltip: 'Tell a portal to do something',
+    helpUrl: '',
+    extensions: ['portal_tell_extension'],
+  },
+  {
+    type: 'portal_when',
+    message0: 'When %1 %2 %3',
+    args0: [
+      {
+        type: 'field_dropdown',
+        name: 'PORTAL_ID',
+        options: [['(no portals yet)', '']],
+      },
+      {
+        type: 'field_dropdown',
+        name: 'CAPABILITY_ID',
+        options: [['(select portal first)', '']],
+      },
+      {
+        type: 'input_statement',
+        name: 'ACTION_BLOCKS',
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: 160,
+    tooltip: 'React when a portal event happens',
+    helpUrl: '',
+    extensions: ['portal_when_extension'],
+  },
+  {
+    type: 'portal_ask',
+    message0: 'Ask %1 for %2',
+    args0: [
+      {
+        type: 'field_dropdown',
+        name: 'PORTAL_ID',
+        options: [['(no portals yet)', '']],
+      },
+      {
+        type: 'field_dropdown',
+        name: 'CAPABILITY_ID',
+        options: [['(select portal first)', '']],
+      },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: 160,
+    tooltip: 'Ask a portal for information',
+    helpUrl: '',
+    extensions: ['portal_ask_extension'],
+  },
 ];
 
 let registered = false;
@@ -552,6 +624,36 @@ export function registerBlocks(): void {
     };
     originalMenuGenerator.call(dropdown);
   });
+
+  function makePortalExtension(kind: 'action' | 'event' | 'query', _fieldName: string) {
+    return function (this: Blockly.Block) {
+      const portalDropdown = this.getField('PORTAL_ID') as Blockly.FieldDropdown;
+      const capDropdown = this.getField('CAPABILITY_ID') as Blockly.FieldDropdown;
+      if (!portalDropdown || !capDropdown) return;
+
+      portalDropdown.getOptions = function () {
+        const portals = getCurrentPortals();
+        if (portals.length === 0) {
+          return [['(no portals yet)', '']];
+        }
+        return portals.map((p) => [p.name, p.id] as [string, string]);
+      };
+
+      capDropdown.getOptions = function () {
+        const portals = getCurrentPortals();
+        const selectedPortalId = portalDropdown.getValue();
+        const portal = portals.find((p) => p.id === selectedPortalId);
+        if (!portal) return [['(select portal first)', '']];
+        const caps = portal.capabilities.filter((c) => c.kind === kind);
+        if (caps.length === 0) return [['(none available)', '']];
+        return caps.map((c) => [c.name, c.id] as [string, string]);
+      };
+    };
+  }
+
+  Blockly.Extensions.register('portal_tell_extension', makePortalExtension('action', 'CAPABILITY_ID'));
+  Blockly.Extensions.register('portal_when_extension', makePortalExtension('event', 'CAPABILITY_ID'));
+  Blockly.Extensions.register('portal_ask_extension', makePortalExtension('query', 'CAPABILITY_ID'));
 
   Blockly.common.defineBlocks(
     Blockly.common.createBlockDefinitionsFromJsonArray(blockDefs)

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { interpretWorkspace, type ProjectSpec } from './blockInterpreter';
 import type { Skill, Rule } from '../Skills/types';
+import type { Portal } from '../Portals/types';
 
 function makeWorkspace(blocks: unknown[]) {
   return { blocks: { blocks } };
@@ -263,5 +264,103 @@ describe('blockInterpreter', () => {
       makeWorkspace([goalBlock('Test', { type: 'use_skill', fields: { SKILL_ID: 'skill-1' } })]),
     );
     expect(spec.skills).toBeUndefined();
+  });
+
+  // Portal blocks
+  describe('portal blocks', () => {
+    const portals: Portal[] = [
+      {
+        id: 'portal-1',
+        name: 'My ESP32',
+        description: 'An ESP32 board',
+        mechanism: 'serial',
+        status: 'unconfigured',
+        capabilities: [
+          { id: 'led-on', name: 'LED on', kind: 'action', description: 'Turn LED on' },
+          { id: 'btn-press', name: 'Button pressed', kind: 'event', description: 'Button event' },
+          { id: 'read-temp', name: 'Read temperature', kind: 'query', description: 'Read temp sensor' },
+        ],
+        serialConfig: { baudRate: 115200, boardType: 'esp32' },
+      },
+    ];
+
+    it('parses portal_tell block and creates portal entry with interaction', () => {
+      const spec = interpretWorkspace(
+        makeWorkspace([goalBlock('Test', { type: 'portal_tell', fields: { PORTAL_ID: 'portal-1', CAPABILITY_ID: 'led-on' } })]),
+        undefined,
+        undefined,
+        portals,
+      );
+      expect(spec.portals).toHaveLength(1);
+      expect(spec.portals![0].name).toBe('My ESP32');
+      expect(spec.portals![0].mechanism).toBe('serial');
+      expect(spec.portals![0].interactions).toContainEqual({ type: 'tell', capabilityId: 'led-on' });
+    });
+
+    it('parses portal_when block', () => {
+      const spec = interpretWorkspace(
+        makeWorkspace([goalBlock('Test', { type: 'portal_when', fields: { PORTAL_ID: 'portal-1', CAPABILITY_ID: 'btn-press' } })]),
+        undefined,
+        undefined,
+        portals,
+      );
+      expect(spec.portals).toHaveLength(1);
+      expect(spec.portals![0].interactions).toContainEqual({ type: 'when', capabilityId: 'btn-press' });
+    });
+
+    it('parses portal_ask block', () => {
+      const spec = interpretWorkspace(
+        makeWorkspace([goalBlock('Test', { type: 'portal_ask', fields: { PORTAL_ID: 'portal-1', CAPABILITY_ID: 'read-temp' } })]),
+        undefined,
+        undefined,
+        portals,
+      );
+      expect(spec.portals).toHaveLength(1);
+      expect(spec.portals![0].interactions).toContainEqual({ type: 'ask', capabilityId: 'read-temp' });
+    });
+
+    it('groups multiple interactions for the same portal', () => {
+      const spec = interpretWorkspace(
+        makeWorkspace([goalBlock('Test', {
+          type: 'portal_tell',
+          fields: { PORTAL_ID: 'portal-1', CAPABILITY_ID: 'led-on' },
+          next: { block: { type: 'portal_ask', fields: { PORTAL_ID: 'portal-1', CAPABILITY_ID: 'read-temp' } } },
+        })]),
+        undefined,
+        undefined,
+        portals,
+      );
+      expect(spec.portals).toHaveLength(1);
+      expect(spec.portals![0].interactions).toHaveLength(2);
+      expect(spec.portals![0].interactions[0]).toEqual({ type: 'tell', capabilityId: 'led-on' });
+      expect(spec.portals![0].interactions[1]).toEqual({ type: 'ask', capabilityId: 'read-temp' });
+    });
+
+    it('ignores portal block with unknown portal ID', () => {
+      const spec = interpretWorkspace(
+        makeWorkspace([goalBlock('Test', { type: 'portal_tell', fields: { PORTAL_ID: 'nonexistent', CAPABILITY_ID: 'led-on' } })]),
+        undefined,
+        undefined,
+        portals,
+      );
+      expect(spec.portals).toBeUndefined();
+    });
+
+    it('ignores portal block when no portals array provided', () => {
+      const spec = interpretWorkspace(
+        makeWorkspace([goalBlock('Test', { type: 'portal_tell', fields: { PORTAL_ID: 'portal-1', CAPABILITY_ID: 'led-on' } })]),
+      );
+      expect(spec.portals).toBeUndefined();
+    });
+
+    it('includes serialConfig in portal entry', () => {
+      const spec = interpretWorkspace(
+        makeWorkspace([goalBlock('Test', { type: 'portal_tell', fields: { PORTAL_ID: 'portal-1', CAPABILITY_ID: 'led-on' } })]),
+        undefined,
+        undefined,
+        portals,
+      );
+      expect(spec.portals![0].serialConfig).toEqual({ baudRate: 115200, boardType: 'esp32' });
+    });
   });
 });

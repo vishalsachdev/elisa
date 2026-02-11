@@ -12,6 +12,8 @@
  */
 
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { which } from '../utils/which.js';
 import type { AgentResult } from '../models/session.js';
 
@@ -26,6 +28,7 @@ export interface AgentRunnerParams {
   ) => Promise<Record<string, any>>;
   workingDir: string;
   timeout?: number;
+  mcpServers?: Array<{ name: string; command: string; args?: string[]; env?: Record<string, string> }>;
 }
 
 export class AgentRunner {
@@ -43,6 +46,7 @@ export class AgentRunner {
       onOutput,
       workingDir,
       timeout = 300,
+      mcpServers,
     } = params;
 
     const args = [
@@ -53,6 +57,23 @@ export class AgentRunner {
       '--permission-mode', 'bypassPermissions',
       '--max-turns', '20',
     ];
+
+    // Inject MCP server config if portals provide MCP servers
+    if (mcpServers && mcpServers.length > 0) {
+      const mcpConfig: Record<string, { command: string; args?: string[]; env?: Record<string, string> }> = {};
+      for (const server of mcpServers) {
+        mcpConfig[server.name] = {
+          command: server.command,
+          ...(server.args ? { args: server.args } : {}),
+          ...(server.env ? { env: server.env } : {}),
+        };
+      }
+      const configDir = path.join(workingDir, '.elisa');
+      fs.mkdirSync(configDir, { recursive: true });
+      const configPath = path.join(configDir, 'mcp-config.json');
+      fs.writeFileSync(configPath, JSON.stringify({ mcpServers: mcpConfig }, null, 2), 'utf-8');
+      args.push('--mcp-config', configPath);
+    }
 
     try {
       return await withTimeout(

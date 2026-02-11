@@ -9,16 +9,19 @@ import TeachingToast from './components/shared/TeachingToast';
 import HumanGateModal from './components/shared/HumanGateModal';
 import QuestionModal from './components/shared/QuestionModal';
 import SkillsRulesModal from './components/Skills/SkillsRulesModal';
+import PortalsModal from './components/Portals/PortalsModal';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useBuildSession } from './hooks/useBuildSession';
 import { saveProjectFile, loadProjectFile, downloadBlob } from './lib/projectFile';
 import type { TeachingMoment } from './types';
 import elisaLogo from '../assets/Elisa.png';
 import type { Skill, Rule } from './components/Skills/types';
+import type { Portal } from './components/Portals/types';
 
 const LS_WORKSPACE = 'elisa:workspace';
 const LS_SKILLS = 'elisa:skills';
 const LS_RULES = 'elisa:rules';
+const LS_PORTALS = 'elisa:portals';
 
 function readLocalStorageJson<T>(key: string): T | null {
   try {
@@ -43,7 +46,9 @@ export default function App() {
   // Restore skills/rules from localStorage on mount
   const [skills, setSkills] = useState<Skill[]>(() => readLocalStorageJson<Skill[]>(LS_SKILLS) ?? []);
   const [rules, setRules] = useState<Rule[]>(() => readLocalStorageJson<Rule[]>(LS_RULES) ?? []);
+  const [portals, setPortals] = useState<Portal[]>(() => readLocalStorageJson<Portal[]>(LS_PORTALS) ?? []);
   const [skillsModalOpen, setSkillsModalOpen] = useState(false);
+  const [portalsModalOpen, setPortalsModalOpen] = useState(false);
 
   // The latest workspace JSON for saving projects
   const [workspaceJson, setWorkspaceJson] = useState<Record<string, unknown> | null>(null);
@@ -81,15 +86,19 @@ export default function App() {
     localStorage.setItem(LS_RULES, JSON.stringify(rules));
   }, [rules]);
 
+  useEffect(() => {
+    localStorage.setItem(LS_PORTALS, JSON.stringify(portals));
+  }, [portals]);
+
   const handleWorkspaceChange = useCallback((json: Record<string, unknown>) => {
-    setSpec(interpretWorkspace(json, skills, rules));
+    setSpec(interpretWorkspace(json, skills, rules, portals));
     setWorkspaceJson(json);
     try {
       localStorage.setItem(LS_WORKSPACE, JSON.stringify(json));
     } catch {
       // localStorage full or unavailable -- ignore
     }
-  }, [skills, rules]);
+  }, [skills, rules, portals]);
 
   const handleGo = async () => {
     if (!spec) return;
@@ -114,7 +123,7 @@ export default function App() {
       }
     }
 
-    const blob = await saveProjectFile(workspaceJson, skills, rules, projectArchive);
+    const blob = await saveProjectFile(workspaceJson, skills, rules, portals, projectArchive);
     const name = spec?.project.goal
       ? spec.project.goal.slice(0, 40).replace(/[^a-zA-Z0-9]+/g, '-').replace(/-+$/, '')
       : 'project';
@@ -129,9 +138,10 @@ export default function App() {
     try {
       const data = await loadProjectFile(file);
 
-      // Restore skills and rules
+      // Restore skills, rules, and portals
       setSkills(data.skills);
       setRules(data.rules);
+      setPortals(data.portals);
 
       // Restore workspace via imperative handle
       setWorkspaceJson(data.workspace);
@@ -141,6 +151,7 @@ export default function App() {
       localStorage.setItem(LS_WORKSPACE, JSON.stringify(data.workspace));
       localStorage.setItem(LS_SKILLS, JSON.stringify(data.skills));
       localStorage.setItem(LS_RULES, JSON.stringify(data.rules));
+      localStorage.setItem(LS_PORTALS, JSON.stringify(data.portals));
     } catch (err) {
       console.error('Failed to open project file:', err);
     }
@@ -188,6 +199,12 @@ export default function App() {
           >
             Skills
           </button>
+          <button
+            onClick={() => setPortalsModalOpen(true)}
+            className="px-3 py-1 text-sm rounded bg-teal-100 text-teal-700 hover:bg-teal-200"
+          >
+            Portals
+          </button>
           <button className="px-3 py-1 text-sm rounded bg-gray-100 text-gray-500 cursor-not-allowed">
             Help
           </button>
@@ -207,6 +224,7 @@ export default function App() {
             readOnly={uiState !== 'design'}
             skills={skills}
             rules={rules}
+            portals={portals}
             initialWorkspace={initialWorkspace}
           />
         </div>
@@ -263,6 +281,15 @@ export default function App() {
           onSkillsChange={setSkills}
           onRulesChange={setRules}
           onClose={() => setSkillsModalOpen(false)}
+        />
+      )}
+
+      {/* Portals modal */}
+      {portalsModalOpen && (
+        <PortalsModal
+          portals={portals}
+          onPortalsChange={setPortals}
+          onClose={() => setPortalsModalOpen(false)}
         />
       )}
 

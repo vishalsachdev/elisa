@@ -11,6 +11,7 @@ import { AgentRunner } from './agentRunner.js';
 import { GitService } from './gitService.js';
 import { HardwareService } from './hardwareService.js';
 import { MetaPlanner } from './metaPlanner.js';
+import { PortalService } from './portalService.js';
 import { TeachingEngine } from './teachingEngine.js';
 import { TestRunner } from './testRunner.js';
 import { ContextManager } from '../utils/contextManager.js';
@@ -58,6 +59,7 @@ export class Orchestrator {
   private teachingEngine = new TeachingEngine();
   private testRunner = new TestRunner();
   private hardwareService = new HardwareService();
+  private portalService = new PortalService(this.hardwareService);
   private projectType = 'software';
   private testResults: Record<string, any> = {};
   private serialHandle: { close: () => void } | null = null;
@@ -76,9 +78,14 @@ export class Orchestrator {
   async run(spec: Record<string, any>): Promise<void> {
     try {
       await this.plan(spec);
+      if (this.shouldDeployPortals()) {
+        await this.initializePortals();
+      }
       await this.execute();
       await this.runTests();
-      if (this.shouldDeployHardware()) {
+      if (this.shouldDeployPortals()) {
+        await this.deployPortals();
+      } else if (this.shouldDeployHardware()) {
         await this.deployHardware();
       }
       await this.complete();
@@ -89,6 +96,8 @@ export class Orchestrator {
         message: String(err.message || err),
         recoverable: false,
       });
+    } finally {
+      await this.portalService.teardownAll();
     }
   }
 
@@ -143,6 +152,7 @@ export class Orchestrator {
 
     if (spec.skills?.length) await this.maybeTeach('skill_used', '');
     if (spec.rules?.length) await this.maybeTeach('rule_used', '');
+    if (spec.portals?.length) await this.maybeTeach('portal_used', '');
   }
 
   // -- Execution --
@@ -238,12 +248,14 @@ export class Orchestrator {
       let result: any = null;
 
       while (!success && retryCount <= maxRetries) {
+        const mcpServers = this.portalService.getMcpServers();
         result = await this.agentRunner.execute({
           taskId,
           prompt: userPrompt,
           systemPrompt,
           onOutput: this.makeOutputHandler(agentName),
           workingDir: this.projectDir,
+          ...(mcpServers.length > 0 ? { mcpServers } : {}),
         });
 
         if (result.success) {
@@ -575,6 +587,96 @@ export class Orchestrator {
     }
 
     await this.send({ type: 'deploy_complete', target: 'esp32' });
+  }
+
+  // -- Portal Deployment --
+
+  private shouldDeployPortals(): boolean {
+    const spec = this.session.spec ?? {};
+    return Array.isArray(spec.portals) && spec.portals.length > 0;
+  }
+
+  private async initializePortals(): Promise<void> {
+    const spec = this.session.spec ?? {};
+    const portalSpecs = spec.portals ?? [];
+    try {
+      await this.portalService.initializePortals(portalSpecs);
+    } catch (err: any) {
+      console.warn('Portal initialization warning:', err.message);
+    }
+  }
+
+  private async deployPortals(): Promise<void> {
+    this.session.state = 'deploying';
+    await this.send({ type: 'deploy_started', target: 'portals' });
+
+    // Deploy serial portals through existing hardware pipeline
+    if (this.portalService.hasSerialPortals()) {
+      await this.send({
+        type: 'deploy_progress',
+        step: 'Compiling code for serial portal...',
+        progress: 25,
+      });
+      const compileResult = await this.hardwareService.compile(this.projectDir);
+
+      if (!compileResult.success) {
+        await this.send({
+          type: 'deploy_progress',
+          step: `Compile failed: ${compileResult.errors.join(', ')}`,
+          progress: 25,
+        });
+        await this.send({
+          type: 'error',
+          message: `Compilation failed: ${compileResult.errors.join(', ')}`,
+          recoverable: true,
+        });
+        return;
+      }
+
+      await this.send({
+        type: 'deploy_progress',
+        step: 'Flashing to board...',
+        progress: 60,
+      });
+      const flashResult = await this.hardwareService.flash(this.projectDir);
+
+      if (!flashResult.success) {
+        await this.send({
+          type: 'deploy_progress',
+          step: flashResult.message,
+          progress: 60,
+        });
+        await this.send({
+          type: 'error',
+          message: flashResult.message,
+          recoverable: true,
+        });
+        return;
+      }
+
+      await this.send({
+        type: 'deploy_progress',
+        step: 'Starting serial monitor...',
+        progress: 90,
+      });
+
+      const board = await this.hardwareService.detectBoard();
+      if (board) {
+        this.serialHandle = await this.hardwareService.startSerialMonitor(
+          board.port,
+          async (line: string) => {
+            await this.send({
+              type: 'serial_data',
+              line,
+              timestamp: new Date().toISOString(),
+            });
+          },
+        );
+      }
+    }
+
+    await this.maybeTeach('portal_used', '');
+    await this.send({ type: 'deploy_complete', target: 'portals' });
   }
 
   // -- Testing --

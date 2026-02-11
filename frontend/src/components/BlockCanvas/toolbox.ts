@@ -41,6 +41,16 @@ export const toolbox = {
     },
     {
       kind: 'category',
+      name: 'Portals',
+      colour: '160',
+      contents: [
+        { kind: 'block', type: 'portal_tell' },
+        { kind: 'block', type: 'portal_when' },
+        { kind: 'block', type: 'portal_ask' },
+      ],
+    },
+    {
+      kind: 'category',
       name: 'Agents',
       colour: '30',
       contents: [
@@ -59,6 +69,7 @@ export const toolbox = {
         { kind: 'block', type: 'at_same_time' },
         { kind: 'block', type: 'keep_improving' },
         { kind: 'block', type: 'check_with_me' },
+        { kind: 'block', type: 'timer_every' },
       ],
     },
     {
@@ -71,7 +82,6 @@ export const toolbox = {
         { kind: 'block', type: 'sensor_read' },
         { kind: 'block', type: 'lora_send' },
         { kind: 'block', type: 'lora_receive' },
-        { kind: 'block', type: 'timer_every' },
         { kind: 'block', type: 'buzzer_play' },
       ],
     },

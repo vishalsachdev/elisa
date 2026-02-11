@@ -109,6 +109,29 @@ export function formatTaskPrompt(params: {
     }
   }
 
+  // Portal context
+  const portals = spec.portals ?? [];
+  if (portals.length) {
+    parts.push('\n## Available Portals');
+    for (const portal of portals) {
+      parts.push(`### Portal: ${portal.name}`);
+      parts.push(`Description: ${portal.description}`);
+      parts.push(`Mechanism: ${portal.mechanism}`);
+      if (portal.capabilities?.length) {
+        parts.push('Capabilities:');
+        for (const cap of portal.capabilities) {
+          parts.push(`  - [${cap.kind}] ${cap.name}: ${cap.description}`);
+        }
+      }
+      if (portal.interactions?.length) {
+        parts.push('Requested interactions:');
+        for (const interaction of portal.interactions) {
+          parts.push(`  - ${interaction.type}: ${interaction.capabilityId}`);
+        }
+      }
+    }
+  }
+
   return parts.join('\n');
 }
 
