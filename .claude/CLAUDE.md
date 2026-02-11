@@ -38,6 +38,14 @@ cd backend && npm install && npm run dev    # port 8000
 cd frontend && npm install && npm run dev   # port 5173 (proxies to 8000)
 ```
 
+## Bug Fix Testing Requirement
+
+Every bug fix **must** include tests that:
+1. Reproduce the failure (the test would fail if the bug were reintroduced)
+2. Prove the fix works
+
+No bug fix is complete without a regression test.
+
 ## Conventions
 
 - No database. All session state is in-memory.
