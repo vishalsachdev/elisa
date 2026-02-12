@@ -2,9 +2,12 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import BlockCanvas from './components/BlockCanvas/BlockCanvas';
 import type { BlockCanvasHandle } from './components/BlockCanvas/BlockCanvas';
 import { interpretWorkspace, migrateWorkspace, type NuggetSpec } from './components/BlockCanvas/blockInterpreter';
-import MissionControl from './components/MissionControl/MissionControl';
 import BottomBar from './components/BottomBar/BottomBar';
 import GoButton from './components/shared/GoButton';
+import MainTabBar, { type MainTab } from './components/shared/MainTabBar';
+import WorkspaceSidebar from './components/BlockCanvas/WorkspaceSidebar';
+import AgentTeamPanel from './components/AgentTeam/AgentTeamPanel';
+import TaskMapPanel from './components/TaskMap/TaskMapPanel';
 import TeachingToast from './components/shared/TeachingToast';
 import HumanGateModal from './components/shared/HumanGateModal';
 import QuestionModal from './components/shared/QuestionModal';
@@ -47,6 +50,9 @@ export default function App() {
   } = useBuildSession();
   useWebSocket({ sessionId, onEvent: handleEvent });
   const { health, loading: healthLoading } = useHealthCheck(uiState === 'design');
+
+  // Main tab state
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('workspace');
 
   // Restore skills/rules from localStorage on mount
   const [skills, setSkills] = useState<Skill[]>(() => readLocalStorageJson<Skill[]>(LS_SKILLS) ?? []);
@@ -106,6 +112,24 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(LS_PORTALS, JSON.stringify(portals));
   }, [portals]);
+
+  // Auto-switch to agents tab when build starts
+  useEffect(() => {
+    if (uiState === 'building' && activeMainTab === 'workspace') {
+      setActiveMainTab('agents');
+    }
+  }, [uiState]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Resize Blockly when returning to workspace tab
+  useEffect(() => {
+    if (activeMainTab === 'workspace') {
+      // Small delay to let CSS display change take effect before resize
+      const timer = setTimeout(() => {
+        blockCanvasRef.current?.resize();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activeMainTab]);
 
   const handleWorkspaceChange = useCallback((json: Record<string, unknown>) => {
     setSpec(interpretWorkspace(json, skills, rules, portals));
@@ -195,89 +219,78 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen atelier-bg noise-overlay text-atelier-text">
-      {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-5 py-2.5 glass-panel border-t-0 border-x-0">
-        <div className="flex items-center gap-3">
-          <img src={elisaLogo} alt="Elisa logo" className="h-8 w-8 rounded-full ring-2 ring-accent-lavender/30" />
-          <h1 className="text-xl font-display font-bold tracking-tight gradient-text-warm">Elisa</h1>
-        </div>
-        <nav className="flex gap-2">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1.5 text-sm rounded-lg bg-atelier-surface/80 text-atelier-text-secondary hover:bg-atelier-elevated hover:text-atelier-text transition-colors font-medium"
-          >
-            Open
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".elisa"
-            className="hidden"
-            onChange={handleOpenNugget}
-          />
-          <button
-            onClick={handleSaveNugget}
-            disabled={!workspaceJson}
-            className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
-              workspaceJson
-                ? 'bg-atelier-surface/80 text-atelier-text-secondary hover:bg-atelier-elevated hover:text-atelier-text'
-                : 'bg-atelier-surface/40 text-atelier-text-muted cursor-not-allowed'
-            }`}
-          >
-            Save
-          </button>
-          <button
-            onClick={() => setSkillsModalOpen(true)}
-            className="px-3 py-1.5 text-sm rounded-lg bg-accent-lavender/15 text-accent-lavender hover:bg-accent-lavender/25 transition-colors font-medium"
-          >
-            Skills
-          </button>
-          <button
-            onClick={() => setPortalsModalOpen(true)}
-            className="px-3 py-1.5 text-sm rounded-lg bg-accent-sky/15 text-accent-sky hover:bg-accent-sky/25 transition-colors font-medium"
-          >
-            Portals
-          </button>
-          <button
-            onClick={() => setExamplePickerOpen(true)}
-            className="px-3 py-1.5 text-sm rounded-lg bg-accent-gold/15 text-accent-gold hover:bg-accent-gold/25 transition-colors font-medium"
-          >
-            Examples
-          </button>
-          <button className="px-3 py-1.5 text-sm rounded-lg bg-atelier-surface/40 text-atelier-text-muted cursor-not-allowed font-medium">
-            Help
-          </button>
-        </nav>
-        <ReadinessBadge health={health} loading={healthLoading} />
-      </header>
-
-      {/* Main area */}
-      <div className="flex flex-1 overflow-hidden relative z-10">
-        {/* Left: BlockCanvas */}
-        <div className="flex-1 relative">
-          <BlockCanvas
-            ref={blockCanvasRef}
-            onWorkspaceChange={handleWorkspaceChange}
-            readOnly={uiState !== 'design'}
-            skills={skills}
-            rules={rules}
-            portals={portals}
-            initialWorkspace={initialWorkspace}
-          />
-        </div>
-
-        {/* Right: Mission Control */}
-        <div className="w-80 glass-panel border-t-0 border-b-0 border-r-0 overflow-y-auto">
-          <MissionControl
-            spec={spec}
+      {/* Header: Logo | MainTabBar | GO button | ReadinessBadge */}
+      <header className="relative z-10 flex items-center justify-between px-5 py-2 glass-panel border-t-0 border-x-0">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <img src={elisaLogo} alt="Elisa logo" className="h-8 w-8 rounded-full ring-2 ring-accent-lavender/30" />
+            <h1 className="text-xl font-display font-bold tracking-tight gradient-text-warm">Elisa</h1>
+          </div>
+          <MainTabBar
+            activeTab={activeMainTab}
+            onTabChange={setActiveMainTab}
             tasks={tasks}
             agents={agents}
-            events={events}
-            uiState={uiState}
-            tokenUsage={tokenUsage}
-            deployProgress={deployProgress}
           />
         </div>
+        <div className="flex items-center gap-3">
+          <GoButton
+            disabled={uiState !== 'design' || !spec?.nugget.goal}
+            onClick={handleGo}
+            uiState={uiState}
+          />
+          <ReadinessBadge health={health} loading={healthLoading} />
+        </div>
+      </header>
+
+      {/* Hidden file input for Open */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".elisa"
+        className="hidden"
+        onChange={handleOpenNugget}
+      />
+
+      {/* Main area: tabbed content */}
+      <div className="flex flex-1 overflow-hidden relative z-10">
+        {/* Workspace tab: sidebar + BlockCanvas (always mounted, hidden when not active) */}
+        <div className={activeMainTab === 'workspace' ? 'flex w-full h-full' : 'hidden'}>
+          <WorkspaceSidebar
+            onOpen={() => fileInputRef.current?.click()}
+            onSave={handleSaveNugget}
+            onSkills={() => setSkillsModalOpen(true)}
+            onPortals={() => setPortalsModalOpen(true)}
+            onExamples={() => setExamplePickerOpen(true)}
+            onHelp={() => {}}
+            saveDisabled={!workspaceJson}
+          />
+          <div className="flex-1 relative">
+            <BlockCanvas
+              ref={blockCanvasRef}
+              onWorkspaceChange={handleWorkspaceChange}
+              readOnly={uiState !== 'design'}
+              skills={skills}
+              rules={rules}
+              portals={portals}
+              initialWorkspace={initialWorkspace}
+            />
+          </div>
+        </div>
+
+        {/* Agents tab */}
+        {activeMainTab === 'agents' && (
+          <div className="w-full h-full">
+            <AgentTeamPanel spec={spec} agents={agents} events={events} />
+          </div>
+        )}
+
+        {/* Tasks tab */}
+        {activeMainTab === 'tasks' && (
+          <div className="w-full h-full">
+            <TaskMapPanel tasks={tasks} />
+          </div>
+        )}
       </div>
 
       {/* Bottom bar */}
@@ -287,6 +300,10 @@ export default function App() {
         coveragePct={coveragePct}
         teachingMoments={teachingMoments}
         serialLines={serialLines}
+        uiState={uiState}
+        tasks={tasks}
+        deployProgress={deployProgress ?? null}
+        tokenUsage={tokenUsage}
       />
 
       {/* Human gate modal */}
@@ -373,14 +390,6 @@ export default function App() {
 
       {/* Teaching toast overlay */}
       <TeachingToast moment={currentToast} onDismiss={handleDismissToast} />
-
-      {/* Footer with GO button */}
-      <footer className="relative z-10 flex items-center justify-center px-4 py-3 glass-panel border-b-0 border-x-0">
-        <GoButton
-          disabled={uiState !== 'design' || !spec?.nugget.goal}
-          onClick={handleGo}
-        />
-      </footer>
     </div>
   );
 }

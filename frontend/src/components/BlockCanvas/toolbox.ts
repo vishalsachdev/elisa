@@ -74,19 +74,6 @@ export const toolbox = {
     },
     {
       kind: 'category',
-      name: 'Hardware',
-      colour: '0',
-      contents: [
-        { kind: 'block', type: 'led_control' },
-        { kind: 'block', type: 'button_input' },
-        { kind: 'block', type: 'sensor_read' },
-        { kind: 'block', type: 'lora_send' },
-        { kind: 'block', type: 'lora_receive' },
-        { kind: 'block', type: 'buzzer_play' },
-      ],
-    },
-    {
-      kind: 'category',
       name: 'Deploy',
       colour: '180',
       contents: [

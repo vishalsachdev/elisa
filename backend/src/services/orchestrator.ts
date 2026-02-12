@@ -608,21 +608,6 @@ export class Orchestrator {
       );
     }
 
-    // Hardware-specific teaching moments
-    const hwComponents = (this.session.spec ?? {}).hardware?.components ?? [];
-    for (const comp of hwComponents) {
-      if (['led', 'button', 'sensor', 'buzzer'].includes(comp.type ?? '')) {
-        await this.maybeTeach('hardware_led', '');
-        break;
-      }
-    }
-    for (const comp of hwComponents) {
-      if (['lora_send', 'lora_receive'].includes(comp.type ?? '')) {
-        await this.maybeTeach('hardware_lora', '');
-        break;
-      }
-    }
-
     await this.send({ type: 'deploy_complete', target: 'esp32' });
   }
 

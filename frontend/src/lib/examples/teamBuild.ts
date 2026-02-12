@@ -34,16 +34,16 @@ export const teamBuild: ExampleNugget = {
                           fields: { FEATURE_TEXT: 'delete items with a remove button' },
                           next: {
                             block: {
-                              type: 'add_agent',
-                              fields: { AGENT_NAME: 'Test Bot', AGENT_ROLE: 'tester' },
+                              type: 'agent_tester',
+                              fields: { AGENT_NAME: 'Test Bot' },
                               next: {
                                 block: {
-                                  type: 'add_agent',
-                                  fields: { AGENT_NAME: 'Review Bot', AGENT_ROLE: 'reviewer' },
+                                  type: 'agent_reviewer',
+                                  fields: { AGENT_NAME: 'Review Bot' },
                                   next: {
                                     block: {
                                       type: 'look_like',
-                                      fields: { STYLE_TEXT: 'clean and modern with a light theme' },
+                                      fields: { STYLE_PRESET: 'clean_simple' },
                                       next: {
                                         block: {
                                           type: 'deploy_web',

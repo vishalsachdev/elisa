@@ -31,16 +31,18 @@ const STATUS_BORDERS: Record<string, string> = {
 
 interface TaskDAGProps {
   tasks: Task[];
+  className?: string;
 }
 
 function truncate(str: string, max: number): string {
   return str.length > max ? str.slice(0, max - 1) + '\u2026' : str;
 }
 
-function TaskDAGInner({ tasks }: TaskDAGProps) {
+function TaskDAGInner({ tasks, className }: TaskDAGProps) {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const { fitView } = useReactFlow();
+  const isFullSize = !!className;
 
   const elkGraph = useMemo(() => ({
     id: 'root',
@@ -127,7 +129,7 @@ function TaskDAGInner({ tasks }: TaskDAGProps) {
   }, [layoutNodes]);
 
   return (
-    <div style={{ height: 200 }}>
+    <div className={className} style={className ? undefined : { height: 200 }}>
       <style>{`
         @keyframes pulse {
           0%, 100% { opacity: 1; }
@@ -140,12 +142,12 @@ function TaskDAGInner({ tasks }: TaskDAGProps) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        nodesDraggable={false}
+        nodesDraggable={isFullSize}
         nodesConnectable={false}
-        panOnDrag={false}
-        zoomOnScroll={false}
-        zoomOnDoubleClick={false}
-        preventScrolling={false}
+        panOnDrag={isFullSize}
+        zoomOnScroll={isFullSize}
+        zoomOnDoubleClick={isFullSize}
+        preventScrolling={!isFullSize}
         fitView
         proOptions={{ hideAttribution: true }}
       />
@@ -153,11 +155,11 @@ function TaskDAGInner({ tasks }: TaskDAGProps) {
   );
 }
 
-export default function TaskDAG({ tasks }: TaskDAGProps) {
+export default function TaskDAG({ tasks, className }: TaskDAGProps) {
   if (tasks.length === 0) return null;
   return (
     <ReactFlowProvider>
-      <TaskDAGInner tasks={tasks} />
+      <TaskDAGInner tasks={tasks} className={className} />
     </ReactFlowProvider>
   );
 }

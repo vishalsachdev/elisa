@@ -11,6 +11,7 @@ registerBlocks();
 
 export interface BlockCanvasHandle {
   loadWorkspace: (json: Record<string, unknown>) => void;
+  resize: () => void;
 }
 
 interface BlockCanvasProps {
@@ -43,6 +44,10 @@ const BlockCanvas = forwardRef<BlockCanvasHandle, BlockCanvasProps>(
       loadWorkspace(json: Record<string, unknown>) {
         if (!workspaceRef.current) return;
         Blockly.serialization.workspaces.load(json, workspaceRef.current);
+      },
+      resize() {
+        if (!workspaceRef.current) return;
+        Blockly.svgResize(workspaceRef.current);
       },
     }));
 

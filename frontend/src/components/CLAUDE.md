@@ -1,40 +1,47 @@
 # Frontend Components
 
-Three-pane layout: BlockCanvas (left, flex-1) | MissionControl (right, w-80) | BottomBar (bottom, h-32). Overlay modals for gates, questions, skills, and completion.
+Tabbed layout: Header (Logo + MainTabBar + GO + Badge) | Main (Workspace/Agents/Tasks tabs) | BottomBar (6 tabs). Overlay modals for gates, questions, skills, and completion.
 
 ## Component Tree
 
 ```
 App.tsx
-  BlockCanvas/BlockCanvas.tsx        Blockly editor wrapper. Read-only during build.
-  MissionControl/MissionControl.tsx  Right sidebar with agent status + task progress
-    TaskDAG.tsx                      @xyflow/react graph of task dependencies
-    CommsFeed.tsx                    Scrolling agent message log
-    MetricsPanel.tsx                 Token usage bars per agent
-  BottomBar/BottomBar.tsx            Tabbed panel (4 tabs)
+  shared/MainTabBar.tsx              Workspace/Agents/Tasks tab switcher in header
+  shared/GoButton.tsx                Build trigger with ready/building/disabled states
+  shared/ReadinessBadge.tsx          Backend readiness indicator
+  BlockCanvas/WorkspaceSidebar.tsx   Vertical icon toolbar (Open/Save/Skills/Portals/Examples/Help)
+  BlockCanvas/BlockCanvas.tsx        Blockly editor wrapper. Read-only during build. Always mounted.
+  AgentTeam/AgentTeamPanel.tsx       Full-width agent cards + comms feed (Agents tab)
+  TaskMap/TaskMapPanel.tsx           Full-width interactive task DAG (Tasks tab)
+  MissionControl/TaskDAG.tsx         @xyflow/react graph of task dependencies
+  MissionControl/CommsFeed.tsx       Scrolling agent message log
+  MissionControl/MetricsPanel.tsx    Token usage bars per agent
+  BottomBar/BottomBar.tsx            Tabbed panel (6 tabs: Timeline/Tests/Board/Learn/Progress/Tokens)
     GitTimeline.tsx                  Commit list with file diffs
-    TestResults.tsx                  Pass/fail indicators + coverage bar
-    BoardOutput.tsx                  Serial output from ESP32
+    TestResults.tsx                  Pass/fail indicators + coverage bar (build-state aware)
+    BoardOutput.tsx                  Serial output (conditional on serial data)
     TeachingSidebar.tsx              Learning moments list
-  shared/GoButton.tsx                Large build trigger button
+    ProgressPanel.tsx                Build progress bar + phase text
   shared/HumanGateModal.tsx          Blocks pipeline, awaits user approve/reject
   shared/QuestionModal.tsx           Multi-choice from agent, user picks answer
   shared/TeachingToast.tsx           Floating notification for learning moments
   shared/AgentAvatar.tsx             Status dot + role icon
-  shared/ReadinessBadge.tsx         Backend readiness indicator (Ready/Not Ready/Offline)
-  shared/ExamplePickerModal.tsx     Card grid to choose bundled example nuggets
+  shared/ExamplePickerModal.tsx      Card grid to choose bundled example nuggets
   Skills/SkillsRulesModal.tsx        CRUD editor for custom skills and rules
+  Portals/PortalsModal.tsx           CRUD editor for portal connections
 ```
 
 ## BlockCanvas Subsystem
 
-- `blockDefinitions.ts`: 25+ custom block types across 9 categories (Goal, Requirements, Style, Agents, Flow, Hardware, Deploy, Skills)
-- `blockInterpreter.ts`: Walks Blockly workspace JSON, extracts fields, builds NuggetSpec. This is the bridge between visual blocks and the backend API.
+- `blockDefinitions.ts`: 20+ custom block types across 8 categories (Goal, Requirements, Style, Agents, Flow, Deploy, Skills, Portals)
+- `blockInterpreter.ts`: Walks Blockly workspace JSON, extracts fields, builds NuggetSpec.
 - `toolbox.ts`: Defines Blockly sidebar categories and their block contents.
 
 ## Key Patterns
 
 - All state lives in App.tsx via `useBuildSession` hook. Components receive state and callbacks as props.
 - WSEvent discriminated union ensures exhaustive handling of all event types.
+- BlockCanvas stays mounted (hidden via CSS) to preserve Blockly workspace state across tab switches.
+- Auto-switch: build starts -> Agents tab + Progress bottom tab.
 - Modals use fixed positioning with backdrop overlay. Only one modal shows at a time.
 - Skills/Rules and workspace state are persisted to localStorage and restored on page load.

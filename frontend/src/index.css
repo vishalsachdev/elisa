@@ -148,6 +148,40 @@ body {
   display: none;
 }
 
+/* GO Button: Ready state (green/mint) */
+.go-btn.go-btn-ready {
+  background: linear-gradient(135deg, var(--color-accent-mint) 0%, #4FBF5F 100%);
+}
+
+.go-btn.go-btn-ready::before {
+  background: linear-gradient(135deg, var(--color-accent-mint), #4FBF5F);
+}
+
+.go-btn.go-btn-ready:hover:not(:disabled) {
+  box-shadow: 0 4px 24px rgba(45, 159, 62, 0.3), 0 2px 8px rgba(45, 159, 62, 0.15);
+}
+
+/* GO Button: Building state (disabled coral) */
+.go-btn.go-btn-building {
+  background: linear-gradient(135deg, rgba(218, 119, 86, 0.4) 0%, rgba(196, 136, 10, 0.4) 100%);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: not-allowed;
+}
+
+.go-btn.go-btn-building::before {
+  display: none;
+}
+
+/* Breathe animation for mint/green GO button */
+@keyframes breathe-mint {
+  0%, 100% { box-shadow: 0 2px 12px rgba(45, 159, 62, 0.20); }
+  50% { box-shadow: 0 4px 20px rgba(45, 159, 62, 0.35); }
+}
+
+.animate-breathe-mint {
+  animation: breathe-mint 3s ease-in-out infinite;
+}
+
 /* ── Gradient Text ── */
 
 .gradient-text-warm {
@@ -266,6 +300,15 @@ body {
 
 .blocklyZoom > image:hover {
   opacity: 0.7;
+}
+
+/* Constrain flyout width to prevent divider shift */
+.blocklyFlyout {
+  max-width: 250px !important;
+}
+
+.blocklyFlyoutBackground {
+  transition: none !important;
 }
 
 /* Grid lines */

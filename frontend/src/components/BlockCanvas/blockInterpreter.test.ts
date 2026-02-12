@@ -129,42 +129,6 @@ describe('blockInterpreter', () => {
     expect(spec.workflow.flow_hints![0].type).toBe('parallel');
   });
 
-  // Hardware blocks
-  it('parses led_control block', () => {
-    const spec = interpretWorkspace(makeWorkspace([
-      goalBlock('Test', { type: 'led_control', fields: { LED_ACTION: 'blink', LED_SPEED: 'fast' } }),
-    ]));
-    expect(spec.hardware?.components).toContainEqual({ type: 'led', action: 'blink', speed: 'fast' });
-  });
-
-  it('parses button_input block', () => {
-    const spec = interpretWorkspace(makeWorkspace([
-      goalBlock('Test', { type: 'button_input', fields: { PIN: 14 } }),
-    ]));
-    expect(spec.hardware?.components).toContainEqual({ type: 'button', pin: 14 });
-  });
-
-  it('parses sensor_read block', () => {
-    const spec = interpretWorkspace(makeWorkspace([
-      goalBlock('Test', { type: 'sensor_read', fields: { SENSOR_TYPE: 'light' } }),
-    ]));
-    expect(spec.hardware?.components).toContainEqual({ type: 'sensor', sensor_type: 'light' });
-  });
-
-  it('parses lora_send block', () => {
-    const spec = interpretWorkspace(makeWorkspace([
-      goalBlock('Test', { type: 'lora_send', fields: { MESSAGE: 'hello', CHANNEL: 3 } }),
-    ]));
-    expect(spec.hardware?.components).toContainEqual({ type: 'lora_send', message: 'hello', channel: 3 });
-  });
-
-  it('parses lora_receive block', () => {
-    const spec = interpretWorkspace(makeWorkspace([
-      goalBlock('Test', { type: 'lora_receive', fields: { CHANNEL: 2 } }),
-    ]));
-    expect(spec.hardware?.components).toContainEqual({ type: 'lora_receive', channel: 2 });
-  });
-
   it('parses timer_every block', () => {
     const spec = interpretWorkspace(makeWorkspace([
       goalBlock('Test', { type: 'timer_every', fields: { INTERVAL: 10 } }),
@@ -172,26 +136,11 @@ describe('blockInterpreter', () => {
     expect(spec.hardware?.components).toContainEqual({ type: 'timer', interval: 10 });
   });
 
-  it('parses buzzer_play block', () => {
-    const spec = interpretWorkspace(makeWorkspace([
-      goalBlock('Test', { type: 'buzzer_play', fields: { FREQUENCY: 440, DURATION: 1.0 } }),
-    ]));
-    expect(spec.hardware?.components).toContainEqual({ type: 'buzzer', frequency: 440, duration: 1.0 });
-  });
-
   it('parses deploy_both block', () => {
     const spec = interpretWorkspace(makeWorkspace([
       goalBlock('Test', { type: 'deploy_both' }),
     ]));
     expect(spec.deployment.target).toBe('both');
-  });
-
-  it('hardware blocks set hasEsp32', () => {
-    const spec = interpretWorkspace(makeWorkspace([
-      goalBlock('Test', { type: 'led_control', fields: { LED_ACTION: 'on', LED_SPEED: 'normal' } }),
-    ]));
-    expect(spec.deployment.target).toBe('esp32');
-    expect(spec.deployment.auto_flash).toBe(true);
   });
 
   it('initializes flow_hints and iteration_conditions', () => {

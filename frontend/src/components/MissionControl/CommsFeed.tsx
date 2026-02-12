@@ -3,6 +3,7 @@ import type { WSEvent } from '../../types';
 
 interface Props {
   events: WSEvent[];
+  fullHeight?: boolean;
 }
 
 type CommEvent =
@@ -23,7 +24,7 @@ function getContent(e: CommEvent): string {
   return e.content;
 }
 
-export default function CommsFeed({ events }: Props) {
+export default function CommsFeed({ events, fullHeight = false }: Props) {
   const feedRef = useRef<HTMLDivElement>(null);
   const commEvents = events.filter(isCommEvent);
 
@@ -38,7 +39,7 @@ export default function CommsFeed({ events }: Props) {
   }
 
   return (
-    <div ref={feedRef} className="max-h-48 overflow-y-auto">
+    <div ref={feedRef} className={fullHeight ? 'h-full overflow-y-auto' : 'max-h-48 overflow-y-auto'}>
       <ul className="text-xs space-y-1">
         {commEvents.map((e, i) => (
           <li key={i} className="px-2.5 py-1.5 bg-atelier-surface/50 rounded-lg font-mono border border-border-subtle">

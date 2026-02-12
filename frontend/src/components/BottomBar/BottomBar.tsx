@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import type { Commit, TestResult, TeachingMoment } from '../../types';
-import type { SerialLine } from '../../hooks/useBuildSession';
+import { useState, useEffect } from 'react';
+import type { Commit, TestResult, TeachingMoment, UIState, Task, TokenUsage } from '../../types';
+import type { SerialLine, DeployProgress } from '../../hooks/useBuildSession';
 import GitTimeline from './GitTimeline';
 import TestResults from './TestResults';
 import TeachingSidebar from './TeachingSidebar';
 import BoardOutput from './BoardOutput';
-
-const TABS = ['Timeline', 'Tests', 'Board', 'Learn'] as const;
+import ProgressPanel from './ProgressPanel';
+import MetricsPanel from '../MissionControl/MetricsPanel';
 
 interface Props {
   commits: Commit[];
@@ -14,15 +14,35 @@ interface Props {
   coveragePct: number | null;
   teachingMoments: TeachingMoment[];
   serialLines: SerialLine[];
+  uiState: UIState;
+  tasks: Task[];
+  deployProgress: DeployProgress | null;
+  tokenUsage: TokenUsage;
 }
 
-export default function BottomBar({ commits, testResults, coveragePct, teachingMoments, serialLines }: Props) {
-  const [activeTab, setActiveTab] = useState<string>('Timeline');
+type Tab = 'Timeline' | 'Tests' | 'Board' | 'Learn' | 'Progress' | 'Tokens';
+
+export default function BottomBar({
+  commits, testResults, coveragePct, teachingMoments, serialLines,
+  uiState, tasks, deployProgress, tokenUsage,
+}: Props) {
+  const [activeTab, setActiveTab] = useState<Tab>('Timeline');
+
+  const showBoard = serialLines.length > 0;
+
+  // Auto-switch to Progress tab when build starts
+  useEffect(() => {
+    if (uiState === 'building') {
+      setActiveTab('Progress');
+    }
+  }, [uiState]);
+
+  const tabs: Tab[] = ['Timeline', 'Tests', ...(showBoard ? ['Board' as Tab] : []), 'Learn', 'Progress', 'Tokens'];
 
   return (
     <div className="relative z-10 glass-panel border-x-0 border-b-0">
       <div className="flex items-center gap-1 px-4 py-1.5 border-b border-border-subtle">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -38,9 +58,15 @@ export default function BottomBar({ commits, testResults, coveragePct, teachingM
       </div>
       <div className="h-32 overflow-hidden">
         {activeTab === 'Timeline' && <GitTimeline commits={commits} />}
-        {activeTab === 'Tests' && <TestResults results={testResults} coveragePct={coveragePct} />}
-        {activeTab === 'Board' && <BoardOutput serialLines={serialLines} />}
+        {activeTab === 'Tests' && <TestResults results={testResults} coveragePct={coveragePct} uiState={uiState} />}
+        {activeTab === 'Board' && showBoard && <BoardOutput serialLines={serialLines} />}
         {activeTab === 'Learn' && <TeachingSidebar moments={teachingMoments} />}
+        {activeTab === 'Progress' && <ProgressPanel uiState={uiState} tasks={tasks} deployProgress={deployProgress} />}
+        {activeTab === 'Tokens' && (
+          <div className="p-4">
+            <MetricsPanel tokenUsage={tokenUsage} />
+          </div>
+        )}
       </div>
     </div>
   );

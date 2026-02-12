@@ -1,12 +1,16 @@
-import type { TestResult } from '../../types';
+import type { TestResult, UIState } from '../../types';
 
 interface Props {
   results: TestResult[];
   coveragePct: number | null;
+  uiState?: UIState;
 }
 
-export default function TestResults({ results, coveragePct }: Props) {
+export default function TestResults({ results, coveragePct, uiState }: Props) {
   if (results.length === 0) {
+    if (uiState === 'building') {
+      return <p className="text-sm text-accent-sky p-4">Tests will run after tasks complete...</p>;
+    }
     return <p className="text-sm text-atelier-text-muted p-4">No test results yet</p>;
   }
 

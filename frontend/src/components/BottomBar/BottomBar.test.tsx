@@ -9,28 +9,35 @@ const defaultProps = {
   coveragePct: null,
   teachingMoments: [],
   serialLines: [],
+  uiState: 'design' as const,
+  tasks: [],
+  deployProgress: null,
+  tokenUsage: { input: 0, output: 0, total: 0, perAgent: {} },
 };
 
 describe('BottomBar', () => {
-  it('renders all tab buttons', () => {
+  it('renders default tabs (no Board when no serial data)', () => {
     render(<BottomBar {...defaultProps} />);
     expect(screen.getByText('Timeline')).toBeInTheDocument();
     expect(screen.getByText('Tests')).toBeInTheDocument();
-    expect(screen.getByText('Board')).toBeInTheDocument();
     expect(screen.getByText('Learn')).toBeInTheDocument();
+    expect(screen.getByText('Progress')).toBeInTheDocument();
+    expect(screen.getByText('Tokens')).toBeInTheDocument();
+    expect(screen.queryByText('Board')).not.toBeInTheDocument();
+  });
+
+  it('shows Board tab when serial data exists', () => {
+    const props = {
+      ...defaultProps,
+      serialLines: [{ line: 'Hello', timestamp: '2026-02-10T12:00:00Z' }],
+    };
+    render(<BottomBar {...props} />);
+    expect(screen.getByText('Board')).toBeInTheDocument();
   });
 
   it('renders GitTimeline empty state by default', () => {
     render(<BottomBar {...defaultProps} />);
     expect(screen.getByText('Commits will appear here as agents work')).toBeInTheDocument();
-  });
-
-  it('all tabs are enabled', () => {
-    render(<BottomBar {...defaultProps} />);
-    expect(screen.getByText('Timeline')).not.toBeDisabled();
-    expect(screen.getByText('Tests')).not.toBeDisabled();
-    expect(screen.getByText('Board')).not.toBeDisabled();
-    expect(screen.getByText('Learn')).not.toBeDisabled();
   });
 
   it('renders commits in timeline', () => {
@@ -52,19 +59,31 @@ describe('BottomBar', () => {
     expect(screen.getByText('No test results yet')).toBeInTheDocument();
   });
 
+  it('Tests tab shows build-in-progress message during build', () => {
+    render(<BottomBar {...defaultProps} uiState="building" />);
+    fireEvent.click(screen.getByText('Tests'));
+    expect(screen.getByText('Tests will run after tasks complete...')).toBeInTheDocument();
+  });
+
   it('clicking Learn tab renders TeachingSidebar', () => {
     render(<BottomBar {...defaultProps} />);
     fireEvent.click(screen.getByText('Learn'));
     expect(screen.getByText('Teaching moments will appear as you build')).toBeInTheDocument();
   });
 
-  it('clicking Board tab renders BoardOutput empty state', () => {
+  it('clicking Progress tab renders ProgressPanel', () => {
     render(<BottomBar {...defaultProps} />);
-    fireEvent.click(screen.getByText('Board'));
-    expect(screen.getByText('Connect your board to see its output')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Progress'));
+    expect(screen.getByText('Progress will appear during a build')).toBeInTheDocument();
   });
 
-  it('Board tab shows serial lines', () => {
+  it('clicking Tokens tab renders MetricsPanel', () => {
+    render(<BottomBar {...defaultProps} />);
+    fireEvent.click(screen.getByText('Tokens'));
+    expect(screen.getByText('No token data yet')).toBeInTheDocument();
+  });
+
+  it('Board tab shows serial lines when data exists', () => {
     const props = {
       ...defaultProps,
       serialLines: [{ line: 'Hello from board', timestamp: '2026-02-10T12:00:00Z' }],

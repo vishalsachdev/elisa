@@ -236,55 +236,10 @@ export function interpretWorkspace(
         spec.workflow.review_enabled = true;
         break;
       }
-      case 'led_control': {
-        const action = (block.fields?.LED_ACTION as string) ?? 'on';
-        const speed = (block.fields?.LED_SPEED as string) ?? 'normal';
-        if (!spec.hardware) spec.hardware = { target: 'esp32', components: [] };
-        spec.hardware.components.push({ type: 'led', action, speed });
-        hasEsp32 = true;
-        break;
-      }
-      case 'button_input': {
-        const pin = (block.fields?.PIN as number) ?? 12;
-        if (!spec.hardware) spec.hardware = { target: 'esp32', components: [] };
-        spec.hardware.components.push({ type: 'button', pin });
-        hasEsp32 = true;
-        break;
-      }
-      case 'sensor_read': {
-        const sensorType = (block.fields?.SENSOR_TYPE as string) ?? 'temperature';
-        if (!spec.hardware) spec.hardware = { target: 'esp32', components: [] };
-        spec.hardware.components.push({ type: 'sensor', sensor_type: sensorType });
-        hasEsp32 = true;
-        break;
-      }
-      case 'lora_send': {
-        const message = (block.fields?.MESSAGE as string) ?? '';
-        const channel = (block.fields?.CHANNEL as number) ?? 1;
-        if (!spec.hardware) spec.hardware = { target: 'esp32', components: [] };
-        spec.hardware.components.push({ type: 'lora_send', message, channel });
-        hasEsp32 = true;
-        break;
-      }
-      case 'lora_receive': {
-        const channel = (block.fields?.CHANNEL as number) ?? 1;
-        if (!spec.hardware) spec.hardware = { target: 'esp32', components: [] };
-        spec.hardware.components.push({ type: 'lora_receive', channel });
-        hasEsp32 = true;
-        break;
-      }
       case 'timer_every': {
         const interval = (block.fields?.INTERVAL as number) ?? 5;
         if (!spec.hardware) spec.hardware = { target: 'esp32', components: [] };
         spec.hardware.components.push({ type: 'timer', interval });
-        hasEsp32 = true;
-        break;
-      }
-      case 'buzzer_play': {
-        const freq = (block.fields?.FREQUENCY as number) ?? 1000;
-        const duration = (block.fields?.DURATION as number) ?? 0.5;
-        if (!spec.hardware) spec.hardware = { target: 'esp32', components: [] };
-        spec.hardware.components.push({ type: 'buzzer', frequency: freq, duration });
         hasEsp32 = true;
         break;
       }

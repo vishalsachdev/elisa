@@ -305,134 +305,6 @@ const blockDefs = [
     helpUrl: '',
   },
   {
-    type: 'check_with_me',
-    message0: 'Check with me before... %1',
-    args0: [
-      {
-        type: 'field_input',
-        name: 'GATE_DESCRIPTION',
-        text: 'finishing the nugget',
-      },
-    ],
-    previousStatement: null,
-    nextStatement: null,
-    colour: 60,
-    tooltip: 'Add a review checkpoint',
-    helpUrl: '',
-  },
-  // Hardware category (NEW - colour 0)
-  {
-    type: 'led_control',
-    message0: 'Turn LED %1 at %2 speed',
-    args0: [
-      {
-        type: 'field_dropdown',
-        name: 'LED_ACTION',
-        options: [
-          ['On', 'on'],
-          ['Off', 'off'],
-          ['Blink', 'blink'],
-        ],
-      },
-      {
-        type: 'field_dropdown',
-        name: 'LED_SPEED',
-        options: [
-          ['Slow', 'slow'],
-          ['Normal', 'normal'],
-          ['Fast', 'fast'],
-        ],
-      },
-    ],
-    previousStatement: null,
-    nextStatement: null,
-    colour: 0,
-    tooltip: 'Control an LED',
-    helpUrl: '',
-  },
-  {
-    type: 'button_input',
-    message0: 'When button on pin %1 is pressed %2',
-    args0: [
-      {
-        type: 'field_number',
-        name: 'PIN',
-        value: 12,
-      },
-      {
-        type: 'input_statement',
-        name: 'ACTION_BLOCKS',
-      },
-    ],
-    previousStatement: null,
-    nextStatement: null,
-    colour: 0,
-    tooltip: 'React to a button press',
-    helpUrl: '',
-  },
-  {
-    type: 'sensor_read',
-    message0: 'Read the %1 sensor',
-    args0: [
-      {
-        type: 'field_dropdown',
-        name: 'SENSOR_TYPE',
-        options: [
-          ['Temperature', 'temperature'],
-          ['Light', 'light'],
-          ['Motion', 'motion'],
-          ['Custom', 'custom'],
-        ],
-      },
-    ],
-    previousStatement: null,
-    nextStatement: null,
-    colour: 0,
-    tooltip: 'Read a sensor value',
-    helpUrl: '',
-  },
-  {
-    type: 'lora_send',
-    message0: 'Send message %1 on channel %2',
-    args0: [
-      {
-        type: 'field_input',
-        name: 'MESSAGE',
-        text: 'hello',
-      },
-      {
-        type: 'field_number',
-        name: 'CHANNEL',
-        value: 1,
-      },
-    ],
-    previousStatement: null,
-    nextStatement: null,
-    colour: 0,
-    tooltip: 'Send a LoRa message',
-    helpUrl: '',
-  },
-  {
-    type: 'lora_receive',
-    message0: 'When message arrives on channel %1 %2',
-    args0: [
-      {
-        type: 'field_number',
-        name: 'CHANNEL',
-        value: 1,
-      },
-      {
-        type: 'input_statement',
-        name: 'ACTION_BLOCKS',
-      },
-    ],
-    previousStatement: null,
-    nextStatement: null,
-    colour: 0,
-    tooltip: 'React to incoming LoRa messages',
-    helpUrl: '',
-  },
-  {
     type: 'timer_every',
     message0: 'Every %1 seconds %2',
     args0: [
@@ -448,29 +320,24 @@ const blockDefs = [
     ],
     previousStatement: null,
     nextStatement: null,
-    colour: 0,
+    colour: 60,
     tooltip: 'Do something on a timer',
     helpUrl: '',
   },
   {
-    type: 'buzzer_play',
-    message0: 'Play sound at %1 Hz for %2 seconds',
+    type: 'check_with_me',
+    message0: 'Check with me before... %1',
     args0: [
       {
-        type: 'field_number',
-        name: 'FREQUENCY',
-        value: 1000,
-      },
-      {
-        type: 'field_number',
-        name: 'DURATION',
-        value: 0.5,
+        type: 'field_input',
+        name: 'GATE_DESCRIPTION',
+        text: 'finishing the nugget',
       },
     ],
     previousStatement: null,
     nextStatement: null,
-    colour: 0,
-    tooltip: 'Play a buzzer tone',
+    colour: 60,
+    tooltip: 'Add a review checkpoint',
     helpUrl: '',
   },
   // Deploy category additions

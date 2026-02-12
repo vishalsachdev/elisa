@@ -26,11 +26,11 @@ export const hardwareBlink: ExampleNugget = {
                   fields: { FEATURE_TEXT: 'blink the onboard LED on and off every second' },
                   next: {
                     block: {
-                      type: 'hw_component',
-                      fields: { HW_TYPE: 'led', HW_ACTION: 'blink', HW_SPEED: 'normal' },
+                      type: 'portal_tell',
+                      fields: { PORTAL_ID: 'esp32-board', CAPABILITY_ID: 'led-blink' },
                       next: {
                         block: {
-                          type: 'deploy_hardware',
+                          type: 'deploy_esp32',
                           fields: {},
                         },
                       },
@@ -46,5 +46,19 @@ export const hardwareBlink: ExampleNugget = {
   },
   skills: [],
   rules: [],
-  portals: [],
+  portals: [
+    {
+      id: 'esp32-board',
+      name: 'ESP32 Board',
+      description: 'An ESP32 microcontroller board with onboard LED',
+      mechanism: 'serial',
+      status: 'unconfigured',
+      capabilities: [
+        { id: 'led-blink', name: 'Blink LED', kind: 'action', description: 'Blink the onboard LED' },
+        { id: 'led-on', name: 'LED on', kind: 'action', description: 'Turn the onboard LED on' },
+        { id: 'led-off', name: 'LED off', kind: 'action', description: 'Turn the onboard LED off' },
+      ],
+      serialConfig: { baudRate: 115200, boardType: 'esp32' },
+    },
+  ],
 };

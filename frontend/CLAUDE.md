@@ -13,14 +13,17 @@ React 19 + TypeScript + Vite SPA. Visual block editor (Blockly) for composing nu
 
 ```
 src/
-  App.tsx                    Root component. Owns all session state. Orchestrates layout + overlays.
+  App.tsx                    Root component. Owns all session state. Tabbed main layout.
   main.tsx                   Entry point. React 19 createRoot.
   components/
-    BlockCanvas/             Blockly editor + block-to-NuggetSpec conversion
-    MissionControl/          Right sidebar: agent status, task DAG, comms, metrics
-    BottomBar/               Bottom tabs: git timeline, tests, board output, teaching
+    BlockCanvas/             Blockly editor + block-to-NuggetSpec conversion + WorkspaceSidebar
+    AgentTeam/               Full-width agent cards + comms feed panel (Agents tab)
+    TaskMap/                 Full-width interactive task DAG panel (Tasks tab)
+    MissionControl/          Shared subcomponents: TaskDAG, CommsFeed, MetricsPanel
+    BottomBar/               Bottom tabs: timeline, tests, board, learn, progress, tokens
     Skills/                  Skills & Rules editor modal + registry
-    shared/                  GoButton, HumanGateModal, QuestionModal, TeachingToast, AgentAvatar, ReadinessBadge
+    Portals/                 Portals editor modal + registry
+    shared/                  MainTabBar, GoButton, HumanGateModal, QuestionModal, TeachingToast, AgentAvatar, ReadinessBadge, ExamplePickerModal
   hooks/
     useBuildSession.ts       All build session state (tasks, agents, commits, events, etc.)
     useHealthCheck.ts        Polls /api/health for backend readiness (API key + SDK status)
@@ -36,13 +39,15 @@ src/
 
 No state library. `useBuildSession` hook holds all session state as `useState` variables. WebSocket events arrive and are dispatched through `handleEvent()` which updates the relevant state slices.
 
-Workspace JSON, skills, and rules auto-save to `localStorage` on every change and restore on page load. Keys: `elisa:workspace`, `elisa:skills`, `elisa:rules`.
+Workspace JSON, skills, and rules auto-save to `localStorage` on every change and restore on page load. Keys: `elisa:workspace`, `elisa:skills`, `elisa:rules`, `elisa:portals`.
 
 UI phases: `design` | `building` | `review` | `deploy` | `done`
 
+Main tabs: `workspace` | `agents` | `tasks` (auto-switches to `agents` when build starts)
+
 ## Communication with Backend
 
-- **REST**: `POST /api/sessions`, `POST /api/sessions/:id/start`, `POST /api/sessions/:id/gate`, `POST /api/sessions/:id/answer`, `GET /api/sessions/:id/export`
+- **REST**: `POST /api/sessions`, `POST /api/sessions/:id/start`, `POST /api/sessions/:id/gate`, `POST /api/sessions/:id/question`, `GET /api/sessions/:id/export`
 - **WebSocket**: `ws://localhost:8000/ws/session/:sessionId` - receives all streaming events
 - Vite proxies both `/api/*` and `/ws/*` to backend in dev mode
 
