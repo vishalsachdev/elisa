@@ -93,7 +93,7 @@ export class AgentRunner {
         cwd,
         model,
         maxTurns,
-        permissionMode: 'default',
+        permissionMode: 'bypassPermissions',
         systemPrompt,
         ...(mcpConfig ? { mcpServers: mcpConfig } : {}),
         ...(abortController ? { abortController } : {}),

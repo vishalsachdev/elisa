@@ -61,11 +61,27 @@ export function useBuildSession() {
     });
 
     switch (event.type) {
-      case 'plan_ready':
-        setTasks(event.tasks);
-        tasksRef.current = event.tasks;
+      case 'plan_ready': {
+        const planTasks: Task[] = event.tasks;
+        // Inject a synthetic deploy node for hardware targets
+        const spec = event as any;
+        const lastTaskId = planTasks.length > 0 ? planTasks[planTasks.length - 1].id : undefined;
+        const deployTarget = (spec.deployment_target as string) ?? '';
+        if (deployTarget === 'esp32' || deployTarget === 'both') {
+          planTasks.push({
+            id: '__deploy__',
+            name: 'Flash to Board',
+            description: 'Flash MicroPython code to ESP32 via mpremote',
+            status: 'pending',
+            agent_name: '',
+            dependencies: lastTaskId ? [lastTaskId] : [],
+          });
+        }
+        setTasks(planTasks);
+        tasksRef.current = planTasks;
         setAgents(event.agents);
         break;
+      }
       case 'task_started':
         setTasks(prev => {
           const next = prev.map(t =>
@@ -123,6 +139,13 @@ export function useBuildSession() {
       case 'deploy_started':
         setUiState('building');
         setDeployProgress({ step: 'Starting deployment...', progress: 0 });
+        setTasks(prev => {
+          const next = prev.map(t =>
+            t.id === '__deploy__' ? { ...t, status: 'in_progress' as const } : t
+          );
+          tasksRef.current = next;
+          return next;
+        });
         break;
       case 'deploy_progress':
         setDeployProgress({ step: event.step, progress: event.progress });
@@ -134,6 +157,13 @@ export function useBuildSession() {
         setDeployProgress(null);
         setDeployChecklist(null);
         if (event.url) setDeployUrl(event.url);
+        setTasks(prev => {
+          const next = prev.map(t =>
+            t.id === '__deploy__' ? { ...t, status: 'done' as const } : t
+          );
+          tasksRef.current = next;
+          return next;
+        });
         break;
       case 'serial_data':
         setSerialLines(prev => {
@@ -241,6 +271,17 @@ export function useBuildSession() {
           recoverable: event.recoverable,
           timestamp: Date.now(),
         });
+        // Mark synthetic deploy node as failed if deploy-related error
+        if (event.message.includes('flash') || event.message.includes('mpremote') ||
+            event.message.includes('Compilation failed') || event.message.includes('board detected')) {
+          setTasks(prev => {
+            const next = prev.map(t =>
+              t.id === '__deploy__' && t.status === 'in_progress' ? { ...t, status: 'failed' as const } : t
+            );
+            tasksRef.current = next;
+            return next;
+          });
+        }
         break;
     }
   }, []);

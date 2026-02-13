@@ -229,6 +229,7 @@ export class DeployPhase {
       progress: 60,
     });
     const flashResult = await this.hardwareService.flash(ctx.nuggetDir);
+    ctx.logger?.info('Flash result', { success: flashResult.success, message: flashResult.message });
     await maybeTeach(this.teachingEngine, ctx, 'hardware_flash', '');
 
     if (!flashResult.success) {
@@ -245,30 +246,13 @@ export class DeployPhase {
       return { serialHandle: null };
     }
 
-    // Step 3: Serial monitor
-    await ctx.send({
-      type: 'deploy_progress',
-      step: 'Starting serial monitor...',
-      progress: 90,
-    });
-
-    let serialHandle: { close: () => void } | null = null;
-    const board = await this.hardwareService.detectBoard();
-    if (board) {
-      serialHandle = await this.hardwareService.startSerialMonitor(
-        board.port,
-        async (line: string) => {
-          await ctx.send({
-            type: 'serial_data',
-            line,
-            timestamp: new Date().toISOString(),
-          });
-        },
-      );
-    }
-
+    // Skip serial monitor -- Node.js serialport cannot write to ESP32-S3
+    // native USB CDC on Windows, so it can't send Ctrl+C on close.  Opening
+    // the port may also trigger a DTR reset that re-runs main.py.  The
+    // post-flash cleanup in the Python script already soft-resets the board
+    // briefly so the user sees their code run.
     await ctx.send({ type: 'deploy_complete', target: 'esp32' });
-    return { serialHandle };
+    return { serialHandle: null };
   }
 
   async deployPortals(ctx: PhaseContext): Promise<{ serialHandle: { close: () => void } | null }> {
@@ -318,6 +302,7 @@ export class DeployPhase {
         progress: 60,
       });
       const flashResult = await this.hardwareService.flash(ctx.nuggetDir);
+      ctx.logger?.info('Flash result (portal)', { success: flashResult.success, message: flashResult.message });
 
       if (!flashResult.success) {
         await ctx.send({
@@ -333,25 +318,8 @@ export class DeployPhase {
         return { serialHandle: null };
       }
 
-      await ctx.send({
-        type: 'deploy_progress',
-        step: 'Starting serial monitor...',
-        progress: 90,
-      });
-
-      const board = await this.hardwareService.detectBoard();
-      if (board) {
-        serialHandle = await this.hardwareService.startSerialMonitor(
-          board.port,
-          async (line: string) => {
-            await ctx.send({
-              type: 'serial_data',
-              line,
-              timestamp: new Date().toISOString(),
-            });
-          },
-        );
-      }
+      // Skip serial monitor (same reason as deployHardware -- Node.js
+      // serialport can't write Ctrl+C to ESP32-S3 native USB on close)
     }
 
     // Deploy CLI portals by executing their commands

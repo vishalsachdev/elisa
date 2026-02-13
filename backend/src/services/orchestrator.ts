@@ -179,6 +179,12 @@ export class Orchestrator {
     tasks: Record<string, any>[],
     agents: Record<string, any>[],
   ): Promise<void> {
+    // Close serial monitor immediately so the COM port is free for the next session
+    if (this.serialHandle) {
+      try { this.serialHandle.close(); } catch { /* ignore */ }
+      this.serialHandle = null;
+    }
+
     this.session.state = 'done';
     this.logger?.phase('done');
     for (const agent of agents) agent.status = 'done';
@@ -216,6 +222,11 @@ export class Orchestrator {
     if (this.webServerProcess) {
       try { this.webServerProcess.kill(); } catch { /* ignore */ }
       this.webServerProcess = null;
+    }
+    // Close serial monitor so the COM port is released for the next flash
+    if (this.serialHandle) {
+      try { this.serialHandle.close(); } catch { /* ignore */ }
+      this.serialHandle = null;
     }
     // Skip directory cleanup for user-chosen workspaces
     if (this.userWorkspace) return;

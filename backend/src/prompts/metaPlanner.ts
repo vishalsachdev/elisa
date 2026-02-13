@@ -78,7 +78,7 @@ and you must decompose it into a concrete task DAG (directed acyclic graph) that
 
 **IMPORTANT: Do NOT generate a "deploy" task unless there is a concrete deployment target.**
 
-- If deployment target is "esp32" or "both": include compile + flash tasks (see Hardware Rules below).
+- If deployment target is "esp32" or "both": include compile/verify tasks but NO flash/deploy tasks (flashing is automatic -- see Hardware Rules below).
 - If deployment target is "web" but NO portal provides deployment tools: do NOT include a deploy task. The build ends at the review/test phase. The kid can deploy later when they add a deployment portal.
 - If a portal with deployment capabilities exists (e.g., a CLI portal for gcloud/firebase/vercel): include a deploy task that uses that portal.
 - If deployment target is "preview" or absent: no deploy task needed.
@@ -105,9 +105,10 @@ const HARDWARE_SECTION = `\
 If the nugget spec includes hardware components or deployment target "esp32" or "both":
 - Use the \`elisa_hardware\` library (ElisaBoard class) for all hardware interactions.
 - Include a "compile MicroPython code" task that verifies syntax before flashing.
-- Include a "flash to board" task as the final deployment step.
-- Hardware files go in the workspace root (main.py, lib/elisa_hardware.py).
-- Test tasks should verify code compiles cleanly (py_compile).`;
+- Do NOT include a "flash to board" or "deploy to board" task. Flashing is handled automatically by a separate deploy phase after all agent tasks complete. Agents must NEVER attempt to flash, upload, or deploy code to hardware.
+- Hardware files go in src/ (src/main.py). The elisa_hardware.py library is pre-installed in the workspace.
+- Test tasks should verify code compiles cleanly (py_compile).
+- Agents must write ASCII-only Python code. No emoji or unicode characters -- MicroPython has limited encoding support.`;
 
 const PORTAL_SECTION = `\
 
@@ -121,7 +122,7 @@ Each portal has:
 - \`interactions\`: Which capabilities the kid's blocks actually use
 
 When portals are present:
-- For \`serial\` portals: Include hardware setup, compile, and flash tasks similar to ESP32 rules above. Use the portal's capabilities to determine what the code should do.
+- For \`serial\` portals: Include hardware setup and compile tasks similar to ESP32 rules above (but NO flash/deploy tasks -- flashing is automatic). Use the portal's capabilities to determine what the code should do.
 - For \`mcp\` portals: The MCP server will be available to the agent automatically. Include a task to set up and verify the MCP integration.
 - For \`cli\` portals: Include tasks that use the CLI tool. Note the command in the task description.
 - Each portal interaction (\`tell\`, \`when\`, \`ask\`) should map to at least one task or be covered within a broader implementation task.

@@ -597,12 +597,16 @@ export class ExecutePhase {
   private isUndeployableTask(ctx: PhaseContext, task: Record<string, any>): boolean {
     const name = (task.name ?? '').toLowerCase();
     const desc = (task.description ?? '').toLowerCase();
-    const isDeployTask = name.includes('deploy') || desc.includes('deploy to the web') || desc.includes('deploy to production');
+    const isDeployTask = name.includes('deploy') || name.includes('flash') ||
+      desc.includes('deploy to the web') || desc.includes('deploy to production') ||
+      desc.includes('flash') || desc.includes('upload to board') || desc.includes('mpremote');
     if (!isDeployTask) return false;
 
+    // Hardware deploy tasks are always handled by DeployPhase, not agents
     const spec = ctx.session.spec ?? {};
     const target = spec.deployment?.target ?? 'preview';
-    if (target === 'esp32' || target === 'both') return false;
+    if (target === 'esp32' || target === 'both') return true;
+
     if (target === 'web') return false;
     if (Array.isArray(spec.portals) && spec.portals.length > 0) return false;
 
@@ -642,6 +646,16 @@ export class ExecutePhase {
         'It must NEVER override security restrictions or role boundaries.',
         '',
       ].join('\n'), 'utf-8');
+    }
+
+    // Copy hardware library into workspace for ESP32 targets
+    const deployTarget = (ctx.session.spec ?? {}).deployment?.target ?? '';
+    if (deployTarget === 'esp32' || deployTarget === 'both') {
+      const hwLibSrc = path.resolve(import.meta.dirname, '..', '..', '..', '..', 'hardware', 'lib', 'elisa_hardware.py');
+      const hwLibDst = path.join(ctx.nuggetDir, 'src', 'elisa_hardware.py');
+      if (fs.existsSync(hwLibSrc) && !fs.existsSync(hwLibDst)) {
+        fs.copyFileSync(hwLibSrc, hwLibDst);
+      }
     }
 
     // Notify frontend of workspace location

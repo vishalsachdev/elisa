@@ -78,6 +78,7 @@ export class PlanPhase {
       tasks,
       agents,
       explanation: planExplanation,
+      deployment_target: spec.deployment?.target ?? '',
     });
 
     await maybeTeach(this.teachingEngine, ctx, 'plan_ready', planExplanation, nuggetType);

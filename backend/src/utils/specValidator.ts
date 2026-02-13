@@ -36,9 +36,11 @@ const CliConfigSchema = z.object({
 const SerialConfigSchema = z.object({
   port: z.string().max(200).optional(),
   baudRate: z.number().int().positive().optional(),
+  boardType: z.string().max(100).optional(),
 }).strict();
 
 const PortalSchema = z.object({
+  id: z.string().max(200).optional(),
   name: z.string().max(200).optional(),
   description: z.string().max(2000).optional(),
   mechanism: z.string().max(50).optional(),

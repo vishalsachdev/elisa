@@ -251,6 +251,15 @@ body {
 
 .blocklyMainBackground {
   fill: var(--color-atelier-base) !important;
+  stroke: none !important;
+}
+
+/* Fix: flyout scrollbar SVG persists as gray bar after flyout closes.
+   Blockly hides it via setAttribute("display","none") (a presentation
+   attribute), which any CSS rule can silently override. Reinforce with
+   a CSS property so the element actually hides. */
+svg[display="none"].blocklyFlyoutScrollbar {
+  display: none !important;
 }
 
 .blocklyToolboxDiv {
@@ -300,11 +309,6 @@ body {
 
 .blocklyZoom > image:hover {
   opacity: 0.7;
-}
-
-/* Constrain flyout width to prevent divider shift */
-.blocklyFlyout {
-  max-width: 250px !important;
 }
 
 .blocklyFlyoutBackground {
