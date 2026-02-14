@@ -36,6 +36,10 @@ Use relative paths for all file operations -- never use absolute paths.
 ## Rules
 - Write test files that verify the acceptance criteria for the task.
 - Use appropriate testing frameworks for the nugget type (pytest for Python, Jest/Vitest for JS/TS).
+- For browser-only projects (HTML/CSS/JS with DOM APIs like canvas, document, window): do NOT \
+try to import or require the code in Node.js. Instead, write tests that verify the source files \
+exist, check for key functions/patterns via string matching (regex on file contents), and validate \
+syntax with \`node --check\` for .js files. Do NOT install jsdom or any other packages.
 - Run the tests and report results clearly.
 - Create test files ONLY within your allowed paths: {allowed_paths}
 - Do NOT modify files in restricted paths: {restricted_paths}

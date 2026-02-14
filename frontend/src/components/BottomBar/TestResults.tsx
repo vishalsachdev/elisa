@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { TestResult, UIState, Task, Agent } from '../../types';
 
 interface Props {
@@ -30,6 +31,13 @@ function StatusDot({ status }: { status: Task['status'] }) {
 }
 
 export default function TestResults({ results, coveragePct, uiState, tasks = [], agents = [] }: Props) {
+  const [expandedFailure, setExpandedFailure] = useState<string | null>(null);
+  const [prevResults, setPrevResults] = useState(results);
+  if (prevResults !== results) {
+    setPrevResults(results);
+    setExpandedFailure(null);
+  }
+
   const testerAgentNames = new Set(
     agents.filter(a => a.role === 'tester').map(a => a.name)
   );
@@ -38,12 +46,32 @@ export default function TestResults({ results, coveragePct, uiState, tasks = [],
   // State B: test results exist
   if (results.length > 0) {
     const passedCount = results.filter(r => r.passed).length;
+    const failures = results.filter(r => !r.passed);
+    const allPassed = failures.length === 0;
 
     return (
-      <div className="h-full overflow-y-auto p-4 space-y-3">
-        <p className="text-sm font-medium text-atelier-text">
-          {passedCount}/{results.length} tests passing
-        </p>
+      <div className="h-full flex flex-col p-4 gap-3">
+        {/* Segmented test bar + summary */}
+        <div className="flex items-center gap-3">
+          <div
+            className="flex-1 h-3 flex rounded-full overflow-hidden"
+            role="img"
+            aria-label={`${passedCount} of ${results.length} tests passing`}
+          >
+            {results.map((r, i) => (
+              <div
+                key={i}
+                className={`flex-1 ${r.passed ? 'bg-accent-mint' : 'bg-accent-coral'}`}
+                title={r.test_name}
+              />
+            ))}
+          </div>
+          <span className="text-xs font-medium text-atelier-text whitespace-nowrap">
+            {passedCount}/{results.length} passing
+          </span>
+        </div>
+
+        {/* Coverage bar */}
         {coveragePct !== null && (
           <div>
             <p className="text-xs text-atelier-text-muted mb-1">Coverage: {coveragePct.toFixed(1)}%</p>
@@ -56,19 +84,36 @@ export default function TestResults({ results, coveragePct, uiState, tasks = [],
             </div>
           </div>
         )}
-        <ul className="text-xs space-y-1">
-          {results.map((r, i) => (
-            <li key={i} className="flex items-center gap-2 px-2.5 py-1.5 bg-atelier-surface/50 rounded-lg border border-border-subtle">
-              <span className={`font-semibold ${r.passed ? 'text-accent-mint' : 'text-accent-coral'}`}>
-                {r.passed ? 'PASS' : 'FAIL'}
-              </span>
-              <span className="font-mono text-atelier-text-secondary">{r.test_name}</span>
-              {r.details && r.details !== 'PASSED' && r.details !== 'FAILED' && (
-                <span className="text-atelier-text-muted ml-auto">{r.details}</span>
-              )}
-            </li>
-          ))}
-        </ul>
+
+        {/* Failure list or success message */}
+        {allPassed ? (
+          <p className="text-xs text-accent-mint">All tests passing!</p>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-1">
+            {failures.map((r) => {
+              const isExpanded = expandedFailure === r.test_name;
+              return (
+                <div key={r.test_name}>
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 px-2.5 py-1.5 bg-atelier-surface/50 rounded-lg border border-border-subtle text-left text-xs hover:bg-atelier-surface/80"
+                    aria-expanded={isExpanded}
+                    onClick={() => setExpandedFailure(isExpanded ? null : r.test_name)}
+                  >
+                    <span className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}>&#9656;</span>
+                    <span className="font-semibold text-accent-coral">FAIL</span>
+                    <span className="font-mono text-atelier-text-secondary truncate">{r.test_name}</span>
+                  </button>
+                  {isExpanded && r.details && r.details !== 'FAILED' && (
+                    <div className="text-[10px] font-mono text-atelier-text-muted px-3 py-1.5 whitespace-pre-wrap">
+                      {r.details}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }

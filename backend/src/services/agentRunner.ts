@@ -141,7 +141,9 @@ export class AgentRunner {
         } else {
           success = false;
           const errors: string[] = result.errors ?? [];
-          finalResult = errors.join('; ') || 'Unknown error';
+          finalResult = errors.join('; ')
+            || accumulatedText.slice(-3).join('\n')
+            || 'Unknown error';
         }
       }
     }
