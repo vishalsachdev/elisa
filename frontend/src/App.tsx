@@ -22,7 +22,7 @@ import ReadinessBadge from './components/shared/ReadinessBadge';
 import DirectoryPickerModal from './components/shared/DirectoryPickerModal';
 import { saveNuggetFile, loadNuggetFile, downloadBlob } from './lib/nuggetFile';
 import type { TeachingMoment } from './types';
-import elisaLogo from '../assets/elisa-sticker.svg';
+import elisaLogo from '../assets/elisa.svg';
 import type { Skill, Rule } from './components/Skills/types';
 import type { Portal } from './components/Portals/types';
 
