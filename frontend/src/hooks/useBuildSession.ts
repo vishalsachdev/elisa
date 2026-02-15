@@ -265,9 +265,14 @@ export function useBuildSession() {
       case 'workspace_created':
         setNuggetDir(event.nugget_dir);
         break;
-      case 'error':
+      case 'error': {
+        // Replace technical auth/key errors with kid-friendly messages
+        let errorMsg = event.message;
+        if (/auth|api.key|401|invalid.*key|invalid.*x-api-key/i.test(errorMsg)) {
+          errorMsg = 'Elisa can\'t connect to her AI brain. Ask your parent to check the API key!';
+        }
         setErrorNotification({
-          message: event.message,
+          message: errorMsg,
           recoverable: event.recoverable,
           timestamp: Date.now(),
         });
@@ -283,6 +288,7 @@ export function useBuildSession() {
           });
         }
         break;
+      }
     }
   }, []);
 
@@ -316,7 +322,7 @@ export function useBuildSession() {
     if (!res.ok) {
       const body = await res.json().catch(() => ({ detail: res.statusText }));
       setUiState('design');
-      setErrorNotification({ message: body.detail || 'Failed to create session', recoverable: true, timestamp: Date.now() });
+      setErrorNotification({ message: body.detail || 'Elisa couldn\'t get ready to build. Try again!', recoverable: true, timestamp: Date.now() });
       return;
     }
     const { session_id } = await res.json();
@@ -339,7 +345,7 @@ export function useBuildSession() {
     });
     if (!startRes.ok) {
       const body = await startRes.json().catch(() => ({ detail: startRes.statusText }));
-      let message = body.detail || 'Failed to start build';
+      let message = body.detail || 'Elisa couldn\'t start building. Try again!';
       if (Array.isArray(body.errors) && body.errors.length > 0) {
         const fieldErrors = body.errors.map((e: { path: string; message: string }) =>
           e.path ? `${e.path}: ${e.message}` : e.message

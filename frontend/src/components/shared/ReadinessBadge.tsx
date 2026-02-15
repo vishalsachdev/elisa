@@ -5,19 +5,13 @@ interface ReadinessBadgeProps {
   loading: boolean;
 }
 
-function buildTooltip(health: HealthStatus): string {
-  if (health.status === 'ready') {
-    return 'API key valid, Agent SDK available';
-  }
-  if (health.status === 'offline') {
-    return 'Backend not reachable';
-  }
-  const issues: string[] = [];
-  if (health.apiKey === 'missing') issues.push('API key not set');
-  else if (health.apiKey === 'invalid') issues.push(`API key invalid: ${health.apiKeyError ?? 'unknown error'}`);
-  else if (health.apiKey === 'unchecked') issues.push('API key not yet checked');
-  if (health.agentSdk === 'not_found') issues.push('Agent SDK not found');
-  return issues.join('; ');
+function friendlyMessage(health: HealthStatus): string {
+  if (health.status === 'ready') return 'Ready to build!';
+  if (health.status === 'offline') return 'Elisa can\'t find the backend server.';
+  if (health.apiKey === 'missing') return 'No API key found. Ask your parent to add one!';
+  if (health.apiKey === 'invalid') return 'That API key didn\'t work. Ask your parent to check it!';
+  if (health.agentSdk === 'not_found') return 'Agent SDK not installed. Try running npm install.';
+  return 'Something isn\'t set up yet.';
 }
 
 export default function ReadinessBadge({ health, loading }: ReadinessBadgeProps) {
@@ -33,7 +27,7 @@ export default function ReadinessBadge({ health, loading }: ReadinessBadgeProps)
     return (
       <span
         className="text-xs px-2.5 py-1 rounded-full bg-accent-mint/15 text-accent-mint font-medium"
-        title={buildTooltip(health)}
+        title={friendlyMessage(health)}
       >
         Ready
       </span>
@@ -44,20 +38,22 @@ export default function ReadinessBadge({ health, loading }: ReadinessBadgeProps)
     return (
       <span
         className="text-xs px-2.5 py-1 rounded-full bg-accent-coral/15 text-accent-coral font-medium"
-        title={buildTooltip(health)}
+        title={friendlyMessage(health)}
       >
         Offline
       </span>
     );
   }
 
-  // degraded
+  // degraded -- show the friendly message directly, not just "Not Ready"
   return (
     <span
       className="text-xs px-2.5 py-1 rounded-full bg-accent-gold/15 text-accent-gold font-medium"
-      title={buildTooltip(health)}
+      title={friendlyMessage(health)}
     >
-      Not Ready
+      {health.apiKey === 'missing' || health.apiKey === 'invalid'
+        ? 'Needs API Key'
+        : 'Not Ready'}
     </span>
   );
 }

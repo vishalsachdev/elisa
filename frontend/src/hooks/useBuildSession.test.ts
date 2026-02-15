@@ -992,7 +992,7 @@ describe('useBuildSession', () => {
         await result.current.startBuild({ nugget: { goal: 'x' } } as never);
       });
 
-      expect(result.current.errorNotification!.message).toBe('Failed to start build');
+      expect(result.current.errorNotification!.message).toBe('Elisa couldn\'t start building. Try again!');
     });
 
     it('includes error path-less messages in validation output', async () => {

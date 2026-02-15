@@ -412,7 +412,7 @@ export default function App() {
         </div>
         <div className="flex items-center gap-3">
           <GoButton
-            disabled={uiState !== 'design' || !spec?.nugget.goal}
+            disabled={uiState !== 'design' || !spec?.nugget.goal || health.status !== 'ready'}
             onClick={handleGo}
             uiState={uiState}
           />
