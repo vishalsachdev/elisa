@@ -174,4 +174,5 @@ Blockly workspace
   -> executePhase (3 concurrent agents via Promise.race)
   -> agent output streamed via SDK -> WebSocket events
   -> useBuildSession -> React UI state updates
+  -> (optional) "Keep working" -> design phase -> re-build with existing workspace + git history
 ```

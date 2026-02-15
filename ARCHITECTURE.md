@@ -104,8 +104,11 @@ Each agent runs via the Claude Agent SDK's `query()` API with role-specific syst
 
 ```
 idle -> planning -> executing -> testing -> reviewing -> deploying -> done
-                       ^
-                   human gates (pause/resume via REST)
+                       ^                                               |
+                   human gates (pause/resume via REST)          keep working
+                                                                       |
+                                                                       v
+                                                                    design (iterative build)
 ```
 
 ## Key Patterns

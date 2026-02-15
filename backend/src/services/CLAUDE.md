@@ -9,7 +9,7 @@ Delegates to phase handlers in sequence: plan -> execute -> test -> deploy. Owns
 
 ### phases/ (pipeline stages)
 - **planPhase.ts** -- MetaPlanner invocation, DAG setup, teaching moments
-- **executePhase.ts** -- Streaming-parallel task execution (Promise.race pool, up to 3 concurrent), workspace setup, git mutex, context chain, token budget enforcement
+- **executePhase.ts** -- Streaming-parallel task execution (Promise.race pool, up to 3 concurrent), workspace setup (cleans stale `.elisa/` artifacts on re-builds), git mutex, context chain, token budget enforcement
 - **testPhase.ts** -- Test runner invocation, result reporting
 - **deployPhase.ts** -- Web preview (local HTTP server), hardware flash, serial portal deployment, CLI portal execution, serial monitor
 - **types.ts** -- Shared `PhaseContext` and `SendEvent` types
@@ -21,7 +21,7 @@ Calls `query()` from `@anthropic-ai/claude-agent-sdk` to run agents programmatic
 Calls Claude API (opus model) with NuggetSpec + system prompt. Returns structured task DAG with dependencies, acceptance criteria, and role assignments. Validates DAG for cycles. Retry on JSON parse failure.
 
 ### gitService.ts (version control)
-Wraps simple-git. Inits repo per session workspace, commits after each task with agent attribution. Tracks files changed per commit. Silently no-ops if git unavailable.
+Wraps simple-git. Inits repo on first build, preserves existing `.git` on re-builds (iterative builds). Commits after each task with agent attribution. Tracks files changed per commit. Silently no-ops if git unavailable.
 
 ### hardwareService.ts (ESP32 integration)
 Board detection via USB VID:PID matching. Compiles MicroPython with py_compile. Flashes via mpremote with Promise-chain mutex for concurrent flash protection. Serial monitor via serialport at 115200 baud. 60s flash timeout. Uses crypto.randomUUID() for temp file names. `probeForRepl` promisifies `sp.close()`.
