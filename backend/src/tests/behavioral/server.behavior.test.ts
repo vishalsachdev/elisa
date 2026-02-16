@@ -184,7 +184,7 @@ describe('isDirectRun detection', () => {
     expect(importMetaUrl.toLowerCase()).toBe(expectedPathToFileURLResult.toLowerCase());
   });
 
-  it('macOS: pathToFileURL produces three slashes, not four', () => {
+  it.skipIf(process.platform === 'win32')('macOS: pathToFileURL produces three slashes, not four', () => {
     const importMetaUrl = 'file:///Users/dev/elisa/backend/dist/server.js';
     const argvPath = '/Users/dev/elisa/backend/dist/server.js';
     const constructed = pathToFileURL(argvPath).href;

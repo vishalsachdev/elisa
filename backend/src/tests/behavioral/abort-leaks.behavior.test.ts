@@ -138,7 +138,8 @@ describe('SessionLogger close() releases streams (#76)', () => {
     logger.info('test entry');
     logger.close();
 
-    await new Promise((r) => setTimeout(r, 50));
+    // Windows file system may need longer to flush write streams
+    await new Promise((r) => setTimeout(r, process.platform === 'win32' ? 500 : 50));
 
     const jsonlPath = path.join(tmpDir, '.elisa', 'logs', 'session.jsonl');
     const logPath = path.join(tmpDir, '.elisa', 'logs', 'session.log');
