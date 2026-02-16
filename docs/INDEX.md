@@ -51,12 +51,11 @@ Block-based visual programming IDE where kids build software by snapping togethe
 | `frontend/README.md` | Dev | Commands, component structure, how to add blocks |
 | `frontend/src/components/CLAUDE.md` | Module | Component hierarchy, BlockCanvas subsystem, UI patterns |
 | `docs/INDEX.md` | Project | This file. Master index of structure, docs, key files |
+| `docs/manual/README.md` | User | Complete user manual: workspace, blocks, building, skills, rules, portals, hardware |
 | `docs/getting-started.md` | User | Install, quick start, first build, troubleshooting |
 | `docs/api-reference.md` | API | REST endpoints, WebSocket events, NuggetSpec schema |
 | `docs/block-reference.md` | User | Block categories with descriptions |
 | `docs/elisa-prd.md` | Product | PRD: vision, features, target audience |
-| `docs/hackathon-tasks.md` | Dev | Task breakdown for hackathon contributors |
-| `docs/project-description-draft.md` | Product | Draft project description |
 
 ## Key Source Files
 
@@ -138,6 +137,9 @@ Block-based visual programming IDE where kids build software by snapping togethe
 | `frontend/src/components/AgentTeam/AgentTeamPanel.tsx` | Full-width agent cards + comms feed |
 | `frontend/src/components/TaskMap/TaskMapPanel.tsx` | Full-width interactive task DAG |
 | `frontend/src/components/shared/MinionAvatar.tsx` | Animated avatar for narrator/minion characters |
+| `frontend/src/components/MissionControl/MissionControlPanel.tsx` | Main mission control layout with narrator feed + minion squad |
+| `frontend/src/components/MissionControl/MinionSquadPanel.tsx` | Minion cards with status badges and task assignments |
+| `frontend/src/components/MissionControl/NarratorFeed.tsx` | Scrolling narrator message feed with mood indicators |
 
 ### Hooks
 
