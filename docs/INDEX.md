@@ -34,7 +34,7 @@ Block-based visual programming IDE where kids build software by snapping togethe
 | `hardware/` | MicroPython ESP32 templates + shared lib |
 | `hardware/lib/` | Shared MicroPython library (`elisa_hardware.py`) |
 | `hardware/templates/` | ESP32 project templates (blink, LoRa) |
-| `scripts/` | Build tooling (esbuild backend bundler, port killer) |
+| `scripts/` | Build tooling (esbuild backend bundler, port killer, subdirectory installer) |
 | `docs/` | Product + technical documentation |
 | `support/` | ESP32 firmware binaries |
 

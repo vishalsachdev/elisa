@@ -14,22 +14,15 @@
 ## Install and Run
 
 ```bash
-# Clone the repo
 git clone https://github.com/zoidbergclawd/elisa.git
 cd elisa
-
-# Terminal 1: Backend
-cd backend
-npm install
-npm run dev          # Starts on port 8000
-
-# Terminal 2: Frontend
-cd frontend
-npm install
-npm run dev          # Starts on port 5173, proxies API to 8000
+npm install          # Installs root, backend, and frontend deps automatically
+npm run dev          # Starts backend (port 8000) + frontend (port 5173)
 ```
 
 Open `http://localhost:5173` in your browser.
+
+To run as a desktop app instead: `npm run dev:electron`
 
 ## First Build Session
 

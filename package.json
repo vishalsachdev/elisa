@@ -20,7 +20,8 @@
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac",
-    "postinstall": "npm install --prefix backend && npm install --prefix frontend"
+    "preinstall": "node scripts/kill-port.mjs 8000 && node scripts/kill-port.mjs 5173",
+    "postinstall": "node scripts/install-deps.mjs"
   },
   "build": {
     "appId": "com.elisa.app",
@@ -58,7 +59,7 @@
     }
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
+    "concurrently": "9.2.1",
     "electron": "^35.1.2",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.4",
