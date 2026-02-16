@@ -45,15 +45,25 @@ Do NOT update docs for internal implementation changes that don't affect the str
 - `CORS_ORIGIN` -- Override CORS origin in dev mode (default: `http://localhost:5173`)
 - `PORT` -- Backend port (default: 8000)
 
-## Dev Setup
+## Setup and Launch
+
+When asked to install, set up, or launch this app, run these two commands from the repo root:
 
 ```
-# Option 1: Electron (recommended)
-npm install && npm run dev    # runs backend + frontend + Electron window
+npm install              # installs root + backend + frontend deps automatically
+npm run dev:electron     # launches backend, frontend, and Electron window
+```
 
-# Option 2: Without Electron (two terminals)
-cd backend && npm install && npm run dev    # port 8000
-cd frontend && npm install && npm run dev   # port 5173 (proxies to 8000)
+**Do NOT use `npm run dev`** -- that starts backend + frontend in a browser only, without the Electron desktop window. This is an Electron app; always use `dev:electron`.
+
+`ANTHROPIC_API_KEY` must be set in the environment before launching. If it is missing, the backend will fail to start.
+
+### Browser-only (rare)
+
+Only use this if explicitly asked to run without Electron:
+
+```
+npm install && npm run dev    # backend (port 8000) + frontend (port 5173)
 ```
 
 ## Bug Fix Testing Requirement
