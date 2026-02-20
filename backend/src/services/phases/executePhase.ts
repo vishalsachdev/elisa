@@ -329,6 +329,12 @@ export class ExecutePhase {
       userPrompt += '\n\n## FILES ALREADY IN WORKSPACE\nThe workspace is empty. You are the first agent.';
     }
 
+    // Inject structural digest so agents see function/class signatures without reading files
+    const digest = ContextManager.buildStructuralDigest(ctx.nuggetDir);
+    if (digest) {
+      userPrompt += '\n\n' + digest;
+    }
+
     let retryCount = 0;
     const maxRetries = 2;
     let success = false;
@@ -674,6 +680,15 @@ export class ExecutePhase {
 
   private async setupWorkspace(ctx: PhaseContext): Promise<void> {
     fs.mkdirSync(ctx.nuggetDir, { recursive: true });
+
+    // Clean stale metadata from previous sessions (preserves source files + logs)
+    const staleDirs = ['comms', 'context', 'status'].map(
+      d => path.join(ctx.nuggetDir, '.elisa', d),
+    );
+    for (const d of staleDirs) {
+      if (fs.existsSync(d)) fs.rmSync(d, { recursive: true });
+    }
+
     const dirs = [
       path.join(ctx.nuggetDir, '.elisa', 'comms'),
       path.join(ctx.nuggetDir, '.elisa', 'comms', 'reviews'),

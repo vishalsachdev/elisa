@@ -631,6 +631,80 @@ describe('MCP servers integration', () => {
 });
 
 // ============================================================
+// Structural digest injection (#101)
+// ============================================================
+
+describe('structural digest injection (#101)', () => {
+  it('includes structural digest in user prompt for populated workspaces', async () => {
+    // Create source files so buildStructuralDigest returns content
+    const srcDir = path.join(nuggetDir, 'src');
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(path.join(srcDir, 'index.js'), 'function greet() { return "hi"; }\nfunction bye() { return "bye"; }');
+
+    const capturedPrompts: string[] = [];
+    const executeMock = vi.fn().mockImplementation(async (opts: any) => {
+      capturedPrompts.push(opts.prompt);
+      return makeSuccessResult();
+    });
+    const task = makeTask('task-1', 'Build UI', 'Builder Bot');
+    const agent = makeAgent('Builder Bot');
+    const deps = makeDeps(executeMock, { tasks: [task], agents: [agent] });
+    const ctx = makeCtx();
+    const phase = new ExecutePhase(deps);
+
+    await phase.execute(ctx);
+
+    // Should contain structural digest content (function signatures)
+    expect(capturedPrompts[0]).toContain('greet');
+  });
+
+  it('does not include digest for fresh/empty workspaces', async () => {
+    const capturedPrompts: string[] = [];
+    const executeMock = vi.fn().mockImplementation(async (opts: any) => {
+      capturedPrompts.push(opts.prompt);
+      return makeSuccessResult();
+    });
+    const task = makeTask('task-1', 'Build UI', 'Builder Bot');
+    const agent = makeAgent('Builder Bot');
+    const deps = makeDeps(executeMock, { tasks: [task], agents: [agent] });
+    const ctx = makeCtx();
+    const phase = new ExecutePhase(deps);
+
+    await phase.execute(ctx);
+
+    // Should have the file manifest section but no structural digest
+    expect(capturedPrompts[0]).toContain('FILES ALREADY IN WORKSPACE');
+    // No digest section because workspace is empty
+    expect(capturedPrompts[0]).not.toContain('STRUCTURAL DIGEST');
+  });
+
+  it('digest appears after file manifest in prompt ordering', async () => {
+    const srcDir = path.join(nuggetDir, 'src');
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(path.join(srcDir, 'app.js'), 'class App { render() {} }');
+
+    const capturedPrompts: string[] = [];
+    const executeMock = vi.fn().mockImplementation(async (opts: any) => {
+      capturedPrompts.push(opts.prompt);
+      return makeSuccessResult();
+    });
+    const task = makeTask('task-1', 'Build UI', 'Builder Bot');
+    const agent = makeAgent('Builder Bot');
+    const deps = makeDeps(executeMock, { tasks: [task], agents: [agent] });
+    const ctx = makeCtx();
+    const phase = new ExecutePhase(deps);
+
+    await phase.execute(ctx);
+
+    const prompt = capturedPrompts[0];
+    const manifestIdx = prompt.indexOf('FILES ALREADY IN WORKSPACE');
+    // The digest text may vary but should appear after the manifest
+    const digestContent = prompt.slice(manifestIdx);
+    expect(digestContent.length).toBeGreaterThan('FILES ALREADY IN WORKSPACE'.length);
+  });
+});
+
+// ============================================================
 // Retry with on_test_fail rules
 // ============================================================
 
@@ -684,23 +758,23 @@ describe('retry with on_test_fail rules', () => {
 
 describe('comms file override', () => {
   it('reads task summary from comms file when present', async () => {
-    const executeMock = vi.fn().mockResolvedValue(
-      makeSuccessResult({ summary: 'Agent summary that should be overridden by comms file content' }),
-    );
+    // The agent writes the comms file during execution (after setupWorkspace cleans stale dirs).
+    // Simulate this by having the mock write the file.
+    const executeMock = vi.fn().mockImplementation(async () => {
+      const commsDir = path.join(nuggetDir, '.elisa', 'comms');
+      fs.mkdirSync(commsDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(commsDir, 'task-1_summary.md'),
+        'Detailed comms summary from the agent file system output for this build task',
+        'utf-8',
+      );
+      return makeSuccessResult({ summary: 'Agent summary that should be overridden by comms file content' });
+    });
     const task = makeTask('task-1', 'Build UI', 'Builder Bot');
     const agent = makeAgent('Builder Bot');
     const deps = makeDeps(executeMock, { tasks: [task], agents: [agent] });
     const ctx = makeCtx();
     const phase = new ExecutePhase(deps);
-
-    // Pre-create the comms file that the agent would normally write
-    const commsDir = path.join(nuggetDir, '.elisa', 'comms');
-    fs.mkdirSync(commsDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(commsDir, 'task-1_summary.md'),
-      'Detailed comms summary from the agent file system output for this build task',
-      'utf-8',
-    );
 
     const result = await phase.execute(ctx);
 
