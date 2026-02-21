@@ -14,9 +14,9 @@
   --color-atelier-hover: #EDE8E2;
 
   /* ── Text Scale (warm dark) ── */
-  --color-atelier-text: #2D2B29;
-  --color-atelier-text-secondary: #6B6560;
-  --color-atelier-text-muted: #A09892;
+  --color-atelier-text: #252220;
+  --color-atelier-text-secondary: #57514C;
+  --color-atelier-text-muted: #7C746E;
 
   /* ── Accents (rich, saturated for light bg) ── */
   --color-accent-coral: #DA7756;
@@ -40,6 +40,7 @@
 
 html {
   font-family: var(--font-body);
+  font-size: 17px;
   color: var(--color-atelier-text);
   background: var(--color-atelier-deep);
   -webkit-font-smoothing: antialiased;
@@ -315,7 +316,7 @@ svg[display="none"].blocklyFlyoutScrollbar {
 .blocklyTreeRow {
   color: var(--color-atelier-text-secondary) !important;
   font-family: var(--font-body) !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
 }
 
 .blocklyTreeSelected .blocklyTreeLabel {
