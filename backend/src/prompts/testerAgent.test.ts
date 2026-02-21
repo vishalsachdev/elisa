@@ -38,6 +38,25 @@ describe('testerAgent SYSTEM_PROMPT', () => {
   it('includes PASS/FAIL reporting format', () => {
     expect(SYSTEM_PROMPT).toContain('PASS or FAIL');
   });
+
+  it('contains Thinking Steps section', () => {
+    expect(SYSTEM_PROMPT).toContain('## Thinking Steps');
+    expect(SYSTEM_PROMPT).toContain('file manifest and structural digest');
+  });
+
+  it('contains Turn Efficiency section', () => {
+    expect(SYSTEM_PROMPT).toContain('## Turn Efficiency');
+    expect(SYSTEM_PROMPT).toContain('limited turn budget');
+    expect(SYSTEM_PROMPT).toContain('Begin writing tests within your first');
+  });
+
+  it('contains {max_turns} placeholder for turn budget injection', () => {
+    expect(SYSTEM_PROMPT).toContain('{max_turns}');
+  });
+
+  it('contains wind-down instruction referencing turn limit', () => {
+    expect(SYSTEM_PROMPT).toContain('wind down');
+  });
 });
 
 describe('testerAgent formatTaskPrompt', () => {
@@ -256,6 +275,42 @@ describe('testerAgent formatTaskPrompt', () => {
     const result = formatTaskPrompt(baseParams);
     expect(result).not.toContain("kid's skills");
     expect(result).not.toContain("kid's rules");
+  });
+
+  describe('behavioral tests in prompt (#105)', () => {
+    it('includes behavioral tests section when present', () => {
+      const result = formatTaskPrompt({
+        ...baseParams,
+        spec: {
+          ...baseParams.spec,
+          workflow: {
+            behavioral_tests: [
+              { when: 'the user clicks play', then: 'the game starts' },
+              { when: 'the user presses escape', then: 'the menu opens' },
+            ],
+          },
+        },
+      });
+      expect(result).toContain('## Behavioral Tests to Verify');
+      expect(result).toContain('- When the user clicks play, then the game starts');
+      expect(result).toContain('- When the user presses escape, then the menu opens');
+    });
+
+    it('omits behavioral tests section when not present', () => {
+      const result = formatTaskPrompt(baseParams);
+      expect(result).not.toContain('Behavioral Tests to Verify');
+    });
+
+    it('omits behavioral tests section when empty array', () => {
+      const result = formatTaskPrompt({
+        ...baseParams,
+        spec: {
+          ...baseParams.spec,
+          workflow: { behavioral_tests: [] },
+        },
+      });
+      expect(result).not.toContain('Behavioral Tests to Verify');
+    });
   });
 
   it('does NOT include portals (tester has no portal section)', () => {

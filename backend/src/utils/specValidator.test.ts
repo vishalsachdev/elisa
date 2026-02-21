@@ -271,6 +271,70 @@ describe('NuggetSpecSchema basic validation', () => {
   });
 });
 
+describe('NuggetSpecSchema behavioral_tests validation (#105)', () => {
+  it('accepts valid behavioral_tests in workflow', () => {
+    const result = NuggetSpecSchema.safeParse({
+      workflow: {
+        behavioral_tests: [
+          { when: 'the user clicks play', then: 'the game starts' },
+          { when: 'the user presses escape', then: 'the menu opens' },
+        ],
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts empty behavioral_tests array', () => {
+    const result = NuggetSpecSchema.safeParse({
+      workflow: { behavioral_tests: [] },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects behavioral_tests with unknown fields', () => {
+    const result = NuggetSpecSchema.safeParse({
+      workflow: {
+        behavioral_tests: [
+          { when: 'click', then: 'response', extra: 'bad' },
+        ],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects behavioral_tests exceeding max array size (20)', () => {
+    const tests = Array.from({ length: 21 }, (_, i) => ({
+      when: `trigger ${i}`, then: `result ${i}`,
+    }));
+    const result = NuggetSpecSchema.safeParse({
+      workflow: { behavioral_tests: tests },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects behavioral_test with when exceeding max length (500)', () => {
+    const result = NuggetSpecSchema.safeParse({
+      workflow: {
+        behavioral_tests: [
+          { when: 'x'.repeat(501), then: 'response' },
+        ],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects behavioral_test with then exceeding max length (500)', () => {
+    const result = NuggetSpecSchema.safeParse({
+      workflow: {
+        behavioral_tests: [
+          { when: 'trigger', then: 'x'.repeat(501) },
+        ],
+      },
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
 describe('portal interaction params', () => {
   it('accepts interaction without params', () => {
     const result = NuggetSpecSchema.safeParse({

@@ -47,6 +47,36 @@ describe('reviewerAgent SYSTEM_PROMPT', () => {
     expect(SYSTEM_PROMPT).toContain('kid_rule');
     expect(SYSTEM_PROMPT).toContain('user_input');
   });
+
+  it('contains Thinking Steps section', () => {
+    expect(SYSTEM_PROMPT).toContain('## Thinking Steps');
+    expect(SYSTEM_PROMPT).toContain('file manifest and structural digest');
+  });
+
+  it('contains Turn Efficiency section', () => {
+    expect(SYSTEM_PROMPT).toContain('## Turn Efficiency');
+    expect(SYSTEM_PROMPT).toContain('limited turn budget');
+    expect(SYSTEM_PROMPT).toContain('Begin reviewing code within your first');
+  });
+
+  it('contains {max_turns} placeholder for turn budget injection', () => {
+    expect(SYSTEM_PROMPT).toContain('{max_turns}');
+  });
+
+  it('contains wind-down instruction referencing turn limit', () => {
+    expect(SYSTEM_PROMPT).toContain('wind down');
+  });
+
+  it('contains Runtime Correctness section with language-specific checks', () => {
+    expect(SYSTEM_PROMPT).toContain('## Runtime Correctness');
+    // JavaScript-specific: TDZ and initialization order
+    expect(SYSTEM_PROMPT).toMatch(/let.*const.*temporal dead zone|TDZ/i);
+    expect(SYSTEM_PROMPT).toMatch(/initialization order/i);
+    // Python-specific
+    expect(SYSTEM_PROMPT).toMatch(/import/i);
+    // General: silent failures
+    expect(SYSTEM_PROMPT).toMatch(/silent/i);
+  });
 });
 
 describe('reviewerAgent formatTaskPrompt', () => {

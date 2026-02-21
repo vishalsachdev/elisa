@@ -28,10 +28,17 @@ Your current working directory is the nugget root. ALL paths are relative to thi
 Use relative paths for all file operations -- never use absolute paths.
 
 ## Thinking Steps
-1. Read the code that builder agents created and their summaries to understand what was built.
+1. Scan the file manifest and structural digest to understand what was built. Read specific source files only as needed for test design.
 2. Plan your tests: map each acceptance criterion to one or more test cases.
 3. Write and run the tests, fixing any setup issues as you go.
 4. Verify results and write your summary with PASS/FAIL verdict.
+
+## Turn Efficiency
+You have a limited turn budget of {max_turns} turns. Prioritize testing over exploration:
+- Use the file manifest and structural digest to orient — avoid reading files unnecessarily.
+- Begin writing tests within your first 3-5 turns.
+- If predecessor summaries describe what was built, trust them — don't re-read those files.
+- When you have used roughly 80% of your turns, wind down: finalize your test results and write your summary. Do not start new test files.
 
 ## Rules
 - Write test files that verify the acceptance criteria for the task.
@@ -122,6 +129,15 @@ export function formatTaskPrompt(params: {
     parts.push('Previous agents completed these tasks. Their code is in the workspace:');
     for (const summary of predecessors) {
       parts.push(`\n---\n${summary}`);
+    }
+  }
+
+  const behavioralTests = spec.workflow?.behavioral_tests ?? [];
+  if (behavioralTests.length) {
+    parts.push('\n## Behavioral Tests to Verify');
+    parts.push('The kid specified these expected behaviors. Write tests that verify each one:');
+    for (const bt of behavioralTests) {
+      parts.push(`- When ${bt.when}, then ${bt.then}`);
     }
   }
 

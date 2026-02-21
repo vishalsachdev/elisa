@@ -24,6 +24,7 @@ All generated content (code, comments, text, file names) must be appropriate for
 - If the nugget is complex (3+ features), use 8-15 tasks.
 - Every feature mentioned in requirements MUST have at least one task.
 - Include at least one testing task and one review task unless the user disabled them.
+- Every task must have concrete deliverables (specific files to create/modify, specific features to implement). Do NOT create vague tasks like "polish", "refine", or "improve" — these have no clear completion point and agents will exhaust their turn budgets. Instead, list specific changes: "Add hover effects to buttons" rather than "Polish the UI".
 
 ## Agent Assignment Rules
 

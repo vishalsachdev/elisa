@@ -1,5 +1,6 @@
 import type { Skill, Rule } from '../Skills/types';
 import type { Portal } from '../Portals/types';
+import type { BehavioralTest } from '../../types';
 
 export interface NuggetSpec {
   nugget: {
@@ -34,6 +35,7 @@ export interface NuggetSpec {
     human_gates: string[];
     flow_hints?: Array<{ type: 'sequential' | 'parallel'; descriptions: string[] }>;
     iteration_conditions?: string[];
+    behavioral_tests?: BehavioralTest[];
   };
   skills?: Array<{ id: string; name: string; prompt: string; category: string; workspace?: Record<string, unknown> }>;
   rules?: Array<{ id: string; name: string; prompt: string; trigger: string }>;
@@ -171,6 +173,14 @@ export function interpretWorkspace(
       case 'has_data': {
         const text = (block.fields?.DATA_TEXT as string) ?? '';
         spec.requirements.push({ type: 'data', description: text });
+        break;
+      }
+      case 'behavioral_test': {
+        const givenWhen = (block.fields?.GIVEN_WHEN as string) ?? '';
+        const then = (block.fields?.THEN as string) ?? '';
+        if (!spec.workflow.behavioral_tests) spec.workflow.behavioral_tests = [];
+        spec.workflow.behavioral_tests.push({ when: givenWhen, then });
+        spec.workflow.testing_enabled = true;
         break;
       }
       case 'look_like': {

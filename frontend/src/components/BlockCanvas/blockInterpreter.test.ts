@@ -792,6 +792,49 @@ describe('blockInterpreter', () => {
     });
   });
 
+  describe('behavioral_test block (#105)', () => {
+    it('produces workflow.behavioral_tests array', () => {
+      const spec = interpretWorkspace(makeWorkspace([
+        goalBlock('Test', { type: 'behavioral_test', fields: { GIVEN_WHEN: 'the user clicks play', THEN: 'the game starts' } }),
+      ]));
+      expect(spec.workflow.behavioral_tests).toHaveLength(1);
+      expect(spec.workflow.behavioral_tests![0]).toEqual({
+        when: 'the user clicks play',
+        then: 'the game starts',
+      });
+    });
+
+    it('enables testing when behavioral_test block is present', () => {
+      const spec = interpretWorkspace(makeWorkspace([
+        goalBlock('Test', { type: 'behavioral_test', fields: { GIVEN_WHEN: 'click', THEN: 'response' } }),
+      ]));
+      expect(spec.workflow.testing_enabled).toBe(true);
+    });
+
+    it('accumulates multiple behavioral tests', () => {
+      const spec = interpretWorkspace(makeWorkspace([
+        chainBlocks(
+          { type: 'nugget_goal', fields: { GOAL_TEXT: 'test' } },
+          { type: 'behavioral_test', fields: { GIVEN_WHEN: 'click play', THEN: 'game starts' } },
+          { type: 'behavioral_test', fields: { GIVEN_WHEN: 'click stop', THEN: 'game pauses' } },
+        ),
+      ]));
+      expect(spec.workflow.behavioral_tests).toHaveLength(2);
+    });
+
+    it('defaults to empty strings when fields are missing', () => {
+      const spec = interpretWorkspace(makeWorkspace([
+        goalBlock('Test', { type: 'behavioral_test', fields: {} }),
+      ]));
+      expect(spec.workflow.behavioral_tests![0]).toEqual({ when: '', then: '' });
+    });
+
+    it('behavioral_tests is undefined when no behavioral_test blocks exist', () => {
+      const spec = interpretWorkspace(makeWorkspace([goalBlock('Test')]));
+      expect(spec.workflow.behavioral_tests).toBeUndefined();
+    });
+  });
+
   describe('unknown block types', () => {
     it('unknown blocks in chain are silently ignored', () => {
       const spec = interpretWorkspace(makeWorkspace([

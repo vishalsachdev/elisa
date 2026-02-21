@@ -38,3 +38,9 @@ export const PREDECESSOR_WORD_CAP = 2000;
 
 /** Default token budget per session. */
 export const DEFAULT_TOKEN_BUDGET = 500_000;
+
+/** Default max turns per agent invocation. */
+export const MAX_TURNS_DEFAULT = 25;
+
+/** Additional turns granted per retry attempt. */
+export const MAX_TURNS_RETRY_INCREMENT = 10;

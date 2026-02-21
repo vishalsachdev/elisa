@@ -17,7 +17,7 @@ import { PermissionPolicy } from '../permissionPolicy.js';
 import { ContextManager } from '../../utils/contextManager.js';
 import { TokenTracker, DEFAULT_RESERVED_PER_TASK } from '../../utils/tokenTracker.js';
 import { TaskDAG } from '../../utils/dag.js';
-import { DEFAULT_MODEL, MAX_CONCURRENT_TASKS, PREDECESSOR_WORD_CAP as PRED_WORD_CAP } from '../../utils/constants.js';
+import { DEFAULT_MODEL, MAX_CONCURRENT_TASKS, PREDECESSOR_WORD_CAP as PRED_WORD_CAP, MAX_TURNS_DEFAULT, MAX_TURNS_RETRY_INCREMENT } from '../../utils/constants.js';
 
 interface PromptModule {
   SYSTEM_PROMPT: string;
@@ -329,6 +329,12 @@ export class ExecutePhase {
       userPrompt += '\n\n## FILES ALREADY IN WORKSPACE\nThe workspace is empty. You are the first agent.';
     }
 
+    // Inject structural digest so agents see function/class signatures without reading files
+    const digest = ContextManager.buildStructuralDigest(ctx.nuggetDir);
+    if (digest) {
+      userPrompt += '\n\n' + digest;
+    }
+
     let retryCount = 0;
     const maxRetries = 2;
     let success = false;
@@ -368,17 +374,31 @@ export class ExecutePhase {
 
     while (!success && retryCount <= maxRetries) {
       const mcpServers = this.deps.portalService.getMcpServers();
-      const prompt = retryCount > 0 && retryRulesSuffix
-        ? userPrompt + retryRulesSuffix
-        : userPrompt;
+      let prompt = userPrompt;
+      if (retryCount > 0) {
+        const retryContext = [
+          `## Retry Attempt ${retryCount}`,
+          'A previous attempt at this task did not complete successfully.',
+          'The workspace already contains partial work from that attempt.',
+          'Skip orientation — do NOT re-read files you can see in the manifest and digest.',
+          'Go straight to implementation.',
+        ].join('\n');
+        prompt = retryContext + '\n\n' + prompt;
+      }
+      if (retryCount > 0 && retryRulesSuffix) {
+        prompt += retryRulesSuffix;
+      }
+      const maxTurns = MAX_TURNS_DEFAULT + (retryCount * MAX_TURNS_RETRY_INCREMENT);
+      const resolvedSystemPrompt = systemPrompt.replaceAll('{max_turns}', String(maxTurns));
       result = await this.deps.agentRunner.execute({
         taskId,
         prompt,
-        systemPrompt,
+        systemPrompt: resolvedSystemPrompt,
         onOutput: this.makeOutputHandler(ctx, agentName),
         onQuestion: this.makeQuestionHandler(ctx, taskId),
         workingDir: ctx.nuggetDir,
         model: process.env.CLAUDE_MODEL || DEFAULT_MODEL,
+        maxTurns,
         allowedTools: [
           'Read', 'Write', 'Edit', 'MultiEdit',
           'Glob', 'Grep', 'LS',
@@ -674,6 +694,15 @@ export class ExecutePhase {
 
   private async setupWorkspace(ctx: PhaseContext): Promise<void> {
     fs.mkdirSync(ctx.nuggetDir, { recursive: true });
+
+    // Clean stale metadata from previous sessions (preserves source files + logs)
+    const staleDirs = ['comms', 'context', 'status'].map(
+      d => path.join(ctx.nuggetDir, '.elisa', d),
+    );
+    for (const d of staleDirs) {
+      if (fs.existsSync(d)) fs.rmSync(d, { recursive: true });
+    }
+
     const dirs = [
       path.join(ctx.nuggetDir, '.elisa', 'comms'),
       path.join(ctx.nuggetDir, '.elisa', 'comms', 'reviews'),

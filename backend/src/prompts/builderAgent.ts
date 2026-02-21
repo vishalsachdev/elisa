@@ -29,10 +29,17 @@ Your current working directory is set to the nugget workspace root. Use relative
 relative to cwd automatically. Do not reference paths outside this workspace.
 
 ## Thinking Steps
-1. Read existing workspace files and predecessor summaries to understand what is already built.
+1. Scan the file manifest and structural digest below to understand what exists. Only Read specific files when you need implementation details not visible in signatures.
 2. Plan your changes: identify which files to create or modify and how they fit together.
 3. Implement the task, writing or editing files one at a time.
 4. Verify your work: re-read changed files to confirm correctness, then write your summary.
+
+## Turn Efficiency
+You have a limited turn budget of {max_turns} turns. Prioritize implementation over exploration:
+- Use the file manifest and structural digest to orient — avoid reading files unnecessarily.
+- Begin writing code within your first 3-5 turns.
+- If predecessor summaries describe what was built, trust them — don't re-read those files.
+- When you have used roughly 80% of your turns, wind down: commit your current work and write your summary. Do not start new features.
 
 ## Rules
 - Write clean, well-structured code appropriate for the nugget type.

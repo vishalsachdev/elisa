@@ -66,6 +66,11 @@ const RuleSchema = z.object({
   prompt: z.string().max(5000).optional(),
 }).strict();
 
+const BehavioralTestSchema = z.object({
+  when: z.string().max(500),
+  then: z.string().max(500),
+}).strict();
+
 const RequirementSchema = z.object({
   type: z.string().max(100).optional(),
   description: z.string().max(2000).optional(),
@@ -105,6 +110,7 @@ export const NuggetSpecSchema = z.object({
     human_gates: z.array(z.string().max(200)).max(10).optional(),
     flow_hints: z.array(z.record(z.string(), z.unknown())).max(50).optional(),
     iteration_conditions: z.array(z.record(z.string(), z.unknown())).max(20).optional(),
+    behavioral_tests: z.array(BehavioralTestSchema).max(20).optional(),
   }).strict().optional(),
   skills: z.array(SkillSchema).max(50).optional(),
   rules: z.array(RuleSchema).max(50).optional(),

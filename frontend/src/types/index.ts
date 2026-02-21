@@ -1,3 +1,8 @@
+export interface BehavioralTest {
+  when: string;
+  then: string;
+}
+
 export type UIState = 'design' | 'building' | 'review' | 'deploy' | 'done';
 
 export interface Task {

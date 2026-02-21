@@ -37,6 +37,25 @@ describe('builderAgent SYSTEM_PROMPT', () => {
   it('defines builder role', () => {
     expect(SYSTEM_PROMPT).toContain('BUILDER');
   });
+
+  it('contains Thinking Steps section', () => {
+    expect(SYSTEM_PROMPT).toContain('## Thinking Steps');
+    expect(SYSTEM_PROMPT).toContain('file manifest and structural digest');
+  });
+
+  it('contains Turn Efficiency section', () => {
+    expect(SYSTEM_PROMPT).toContain('## Turn Efficiency');
+    expect(SYSTEM_PROMPT).toContain('limited turn budget');
+    expect(SYSTEM_PROMPT).toContain('Begin writing code within your first');
+  });
+
+  it('contains {max_turns} placeholder for turn budget injection', () => {
+    expect(SYSTEM_PROMPT).toContain('{max_turns}');
+  });
+
+  it('contains wind-down instruction referencing turn limit', () => {
+    expect(SYSTEM_PROMPT).toContain('wind down');
+  });
 });
 
 describe('formatStyle', () => {

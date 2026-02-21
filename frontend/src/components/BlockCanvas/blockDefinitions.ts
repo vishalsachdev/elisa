@@ -171,6 +171,20 @@ const blockDefs = [
     tooltip: 'Add data the nugget needs',
     helpUrl: '',
   },
+  // Tests category (colour 30, red family — same as Minions/testing)
+  {
+    type: 'behavioral_test',
+    message0: 'Test that when %1 then %2',
+    args0: [
+      { type: 'field_input', name: 'GIVEN_WHEN', text: 'the user clicks play' },
+      { type: 'field_input', name: 'THEN', text: 'the game starts' },
+    ],
+    previousStatement: null,
+    nextStatement: null,
+    colour: 30,
+    tooltip: 'Add a behavioral test — the tester will verify this works',
+    helpUrl: '',
+  },
   // Style category (NEW - colour 270)
   {
     type: 'look_like',

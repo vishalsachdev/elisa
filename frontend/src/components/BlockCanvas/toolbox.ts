@@ -23,6 +23,14 @@ export const toolbox = {
     },
     {
       kind: 'category',
+      name: 'Tests',
+      colour: '30',
+      contents: [
+        { kind: 'block', type: 'behavioral_test' },
+      ],
+    },
+    {
+      kind: 'category',
       name: 'Style',
       colour: '270',
       contents: [

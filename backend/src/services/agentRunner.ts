@@ -8,6 +8,7 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentResult } from '../models/session.js';
 import { withTimeout } from '../utils/withTimeout.js';
+import { MAX_TURNS_DEFAULT } from '../utils/constants.js';
 
 export interface AgentRunnerParams {
   taskId: string;
@@ -37,7 +38,7 @@ export class AgentRunner {
       workingDir,
       timeout = 300,
       model = process.env.CLAUDE_MODEL || 'claude-opus-4-6',
-      maxTurns = 25,
+      maxTurns = MAX_TURNS_DEFAULT,
       mcpServers,
       allowedTools,
     } = params;
