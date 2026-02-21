@@ -12,11 +12,11 @@ import { vi, describe, it, expect, afterAll, beforeAll } from 'vitest';
 
 // -- Module mocks (hoisted) --
 
-vi.mock('@anthropic-ai/sdk', () => {
-  const Anthropic = vi.fn();
-  Anthropic.prototype.models = { list: vi.fn().mockResolvedValue({}) };
-  Anthropic.prototype.messages = { create: vi.fn().mockResolvedValue({}) };
-  return { default: Anthropic };
+vi.mock('openai', () => {
+  const OpenAI = vi.fn();
+  OpenAI.prototype.models = { list: vi.fn().mockResolvedValue({}) };
+  OpenAI.prototype.chat = { completions: { create: vi.fn().mockResolvedValue({ choices: [{ message: { content: '' } }] }) } };
+  return { default: OpenAI };
 });
 
 vi.mock('../../services/metaPlanner.js', () => {

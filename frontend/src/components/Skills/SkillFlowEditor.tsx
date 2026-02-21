@@ -46,7 +46,7 @@ export default function SkillFlowEditor({ skill, allSkills, onSave, onClose }: P
     if (skill.workspace) {
       try {
         Blockly.serialization.workspaces.load(
-          skill.workspace as Blockly.serialization.blocks.State,
+          skill.workspace as unknown as Blockly.serialization.blocks.State,
           ws,
         );
       } catch {

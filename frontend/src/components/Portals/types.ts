@@ -25,7 +25,7 @@ export interface Portal {
   status: PortalStatus;
   capabilities: PortalCapability[];
   mcpConfig?: { command: string; args?: string[]; env?: Record<string, string> };
-  cliConfig?: { command: string; installHint?: string };
+  cliConfig?: { command: string; args?: string[]; installHint?: string };
   serialConfig?: { port?: string; baudRate?: number; boardType?: string };
   templateId?: string;
 }

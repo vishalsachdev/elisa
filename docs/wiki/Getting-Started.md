@@ -5,7 +5,7 @@
 | Requirement | Notes |
 |-------------|-------|
 | Node.js 20+ | Required. Download from [nodejs.org](https://nodejs.org) |
-| Anthropic API key | Required. Get one at [console.anthropic.com](https://console.anthropic.com) |
+| OpenAI API key | Required. Get one at [platform.openai.com](https://platform.openai.com) |
 | Python 3.10+ | Optional. Needed only if your builds include test tasks |
 | ESP32 + mpremote | Optional. Needed only for hardware projects. Install with `pip install mpremote` |
 
@@ -38,7 +38,7 @@ Open `http://localhost:5173` in your browser.
 ## Setting Your API Key
 
 - **Electron app**: A settings dialog prompts you on first launch. Your key is encrypted and stored securely via the OS keychain (safeStorage).
-- **Dev mode**: Set the `ANTHROPIC_API_KEY` environment variable before starting the backend.
+- **Dev mode**: Set the `OPENAI_API_KEY` environment variable before starting the backend.
 
 The readiness badge in the top-right corner shows the connection status:
 

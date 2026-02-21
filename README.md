@@ -36,7 +36,7 @@ cd backend && npm install && npm run dev    # localhost:8000
 cd frontend && npm install && npm run dev   # localhost:5173
 ```
 
-Requires Node.js 20+ and an Anthropic API key (`ANTHROPIC_API_KEY` env var). Tested on Windows and macOS. See [Getting Started](docs/getting-started.md) for full setup.
+Requires Node.js 20+ and an OpenAI API key (`OPENAI_API_KEY` env var). Tested on Windows and macOS. See [Getting Started](docs/getting-started.md) for full setup.
 
 ## Features
 
@@ -84,7 +84,7 @@ Browser (React SPA)  <──REST + WebSocket──>  Express Server
                                       HardwareService, TeachingEngine
 ```
 
-Each agent runs as an isolated SDK `query()` call. No database -- all session state is in-memory. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system design.
+Each agent runs as an isolated OpenAI chat completion request. No database -- all session state is in-memory. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system design.
 
 ## Project Structure
 
@@ -100,7 +100,7 @@ elisa/
   backend/           Express + WebSocket server
     src/services/
       orchestrator   Build pipeline controller
-      agentRunner    Claude Agent SDK runner
+      agentRunner    OpenAI chat completions API runner
       metaPlanner    NuggetSpec -> task DAG decomposition
       gitService     Per-session git repo management
       testRunner     pytest execution and coverage parsing

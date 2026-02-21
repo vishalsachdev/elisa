@@ -6,7 +6,7 @@
  * dialog or environment variable.
  *
  * Verifies:
- * - Health endpoint live-checks process.env.ANTHROPIC_API_KEY (not cached)
+ * - Health endpoint live-checks process.env.OPENAI_API_KEY (not cached)
  * - Config endpoint allows setting API key in dev mode
  * - Health transitions from 'missing' to 'valid' after key is set
  * - Config endpoint requires auth and is dev-mode only
@@ -50,13 +50,13 @@ vi.mock('../../services/skillRunner.js', () => {
   return { SkillRunner: MockSkillRunner };
 });
 
-// Mock Anthropic SDK to control health validation
+// Mock OpenAI SDK to control health validation
 const { mockModelsList } = vi.hoisted(() => ({
   mockModelsList: vi.fn().mockResolvedValue({ data: [] }),
 }));
 
-vi.mock('@anthropic-ai/sdk', () => ({
-  default: class MockAnthropic {
+vi.mock('openai', () => ({
+  default: class MockOpenAI {
     models = { list: mockModelsList };
   },
 }));
@@ -94,7 +94,7 @@ async function startTestServer(staticDir?: string): Promise<void> {
 }
 
 beforeEach(() => {
-  savedApiKey = process.env.ANTHROPIC_API_KEY;
+  savedApiKey = process.env.OPENAI_API_KEY;
   mockModelsList.mockResolvedValue({ data: [] });
 });
 
@@ -106,9 +106,9 @@ afterEach(async () => {
   authToken = null;
   // Restore original env
   if (savedApiKey !== undefined) {
-    process.env.ANTHROPIC_API_KEY = savedApiKey;
+    process.env.OPENAI_API_KEY = savedApiKey;
   } else {
-    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.OPENAI_API_KEY;
   }
 });
 
@@ -117,8 +117,8 @@ afterEach(async () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /api/health — API key live-check', () => {
-  it('returns missing when ANTHROPIC_API_KEY is not set', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
+  it('returns missing when OPENAI_API_KEY is not set', async () => {
+    delete process.env.OPENAI_API_KEY;
     await startTestServer();
 
     const res = await fetch(`${baseUrl()}/api/health`);
@@ -127,8 +127,8 @@ describe('GET /api/health — API key live-check', () => {
     expect(body.status).toBe('degraded');
   });
 
-  it('returns valid when ANTHROPIC_API_KEY is set and API responds', async () => {
-    process.env.ANTHROPIC_API_KEY = 'sk-test-key';
+  it('returns valid when OPENAI_API_KEY is set and API responds', async () => {
+    process.env.OPENAI_API_KEY = 'sk-test-key';
     await startTestServer();
 
     // Wait for async startup health validation
@@ -141,7 +141,7 @@ describe('GET /api/health — API key live-check', () => {
   });
 
   it('transitions from missing to valid when API key is set after startup', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     await startTestServer();
 
     // First check: missing
@@ -150,7 +150,7 @@ describe('GET /api/health — API key live-check', () => {
     expect(body1.apiKey).toBe('missing');
 
     // Set the env var (simulating config endpoint or manual set)
-    process.env.ANTHROPIC_API_KEY = 'sk-test-key';
+    process.env.OPENAI_API_KEY = 'sk-test-key';
 
     // Second check: should detect the key and re-validate
     const res2 = await fetch(`${baseUrl()}/api/health`);
@@ -160,7 +160,7 @@ describe('GET /api/health — API key live-check', () => {
 
   it('returns invalid when API key validation fails', async () => {
     mockModelsList.mockRejectedValue(new Error('Invalid API key'));
-    process.env.ANTHROPIC_API_KEY = 'sk-bad-key';
+    process.env.OPENAI_API_KEY = 'sk-bad-key';
     await startTestServer();
 
     // Wait for async startup validation
@@ -173,7 +173,7 @@ describe('GET /api/health — API key live-check', () => {
   });
 
   it('reverts to missing when API key is removed from env', async () => {
-    process.env.ANTHROPIC_API_KEY = 'sk-test-key';
+    process.env.OPENAI_API_KEY = 'sk-test-key';
     await startTestServer();
 
     await new Promise(r => setTimeout(r, 100));
@@ -183,7 +183,7 @@ describe('GET /api/health — API key live-check', () => {
     expect((await res1.json()).apiKey).toBe('valid');
 
     // Remove the key
-    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.OPENAI_API_KEY;
 
     // Now: missing
     const res2 = await fetch(`${baseUrl()}/api/health`);
@@ -197,7 +197,7 @@ describe('GET /api/health — API key live-check', () => {
 
 describe('POST /api/internal/config', () => {
   it('sets API key and returns updated status (dev mode)', async () => {
-    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.OPENAI_API_KEY;
     await startTestServer(); // no staticDir = dev mode
 
     // Verify initially missing
@@ -215,7 +215,7 @@ describe('POST /api/internal/config', () => {
     expect(body.apiKey).toBe('valid');
 
     // Verify the env var was set
-    expect(process.env.ANTHROPIC_API_KEY).toBe('sk-propagated-key');
+    expect(process.env.OPENAI_API_KEY).toBe('sk-propagated-key');
 
     // Verify health endpoint now returns valid
     const healthAfter = await fetch(`${baseUrl()}/api/health`);

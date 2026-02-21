@@ -106,7 +106,7 @@ Visual flow editor for composite [skills](Skills). These blocks are used inside 
 | **Ask User** | `QUESTION`, `HEADER`, `OPTIONS`, `STORE_AS` | Pauses and asks user a question. Stores answer in context. |
 | **If** | `CONTEXT_KEY`, `MATCH_VALUE`, `THEN_BLOCKS` | Branch on context value. Runs nested blocks only if value matches. |
 | **Run Skill** | `SKILL_ID`, `STORE_AS` | Invokes another skill. Stores output in context. |
-| **Run Agent** | `PROMPT`, `STORE_AS` | Spawns a Claude agent. Stores result in context. |
+| **Run Agent** | `PROMPT`, `STORE_AS` | Spawns an AI agent. Stores result in context. |
 | **Set Context** | `KEY`, `VALUE` | Sets a context variable |
 | **Output** | `TEMPLATE` | Produces final output of the flow. Terminal block. |
 

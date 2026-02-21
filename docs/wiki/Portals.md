@@ -34,7 +34,7 @@ If a board is currently connected, a green banner shows the detected board and p
 ### MCP Server Settings
 
 - **Command** — The program to run (e.g., `npx`).
-- **Arguments** — Command-line arguments (e.g., `-y @anthropic-ai/mcp-filesystem`).
+- **Arguments** — Command-line arguments (e.g., `-y @modelcontextprotocol/server-filesystem`).
 
 ### CLI Tool Settings
 

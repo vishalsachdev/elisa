@@ -397,7 +397,7 @@ export class ExecutePhase {
         onOutput: this.makeOutputHandler(ctx, agentName),
         onQuestion: this.makeQuestionHandler(ctx, taskId),
         workingDir: ctx.nuggetDir,
-        model: process.env.CLAUDE_MODEL || DEFAULT_MODEL,
+        model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
         maxTurns,
         allowedTools: [
           'Read', 'Write', 'Edit', 'MultiEdit',

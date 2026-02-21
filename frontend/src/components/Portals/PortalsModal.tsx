@@ -321,7 +321,7 @@ function PortalEditor({ portal, onSave, onDelete, onCancel, boardInfo }: {
               type="text"
               value={mcpArgs}
               onChange={e => setMcpArgs(e.target.value)}
-              placeholder="e.g. -y @anthropic-ai/mcp-filesystem"
+              placeholder="e.g. -y @modelcontextprotocol/server-filesystem"
               className={inputClass}
             />
           </div>

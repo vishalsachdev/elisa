@@ -136,7 +136,7 @@ async function propagateApiKeyToBackend(): Promise<void> {
 async function startBackend(): Promise<void> {
   const apiKey = getApiKey();
   if (apiKey) {
-    process.env.ANTHROPIC_API_KEY = apiKey;
+    process.env.OPENAI_API_KEY = apiKey;
   }
 
   const isDev = !app.isPackaged;
@@ -242,7 +242,7 @@ ipcMain.handle('get-api-key-status', () => {
 ipcMain.handle('set-api-key', async (_event, key: string) => {
   setApiKey(key);
   // Update the running process env so backend picks it up (production: in-process)
-  process.env.ANTHROPIC_API_KEY = key;
+  process.env.OPENAI_API_KEY = key;
   // Dev mode: propagate to separately-running backend process
   if (!app.isPackaged) {
     propagateApiKeyToBackend().catch(() => {});

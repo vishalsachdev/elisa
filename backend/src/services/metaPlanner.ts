@@ -1,9 +1,9 @@
-/** Decomposes a nugget spec into a task DAG using Claude. */
+/** Decomposes a nugget spec into a task DAG using OpenAI. */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { buildMetaPlannerSystem, META_PLANNER_SYSTEM, metaPlannerUser } from '../prompts/metaPlanner.js';
 import { DEFAULT_MODEL } from '../utils/constants.js';
-import { getAnthropicClient } from '../utils/anthropicClient.js';
+import { getOpenAIClient } from '../utils/openaiClient.js';
 
 const DEFAULT_AGENTS = [
   {
@@ -24,10 +24,10 @@ const DEFAULT_AGENTS = [
 ];
 
 export class MetaPlanner {
-  private client: Anthropic;
+  private client: OpenAI;
 
   constructor() {
-    this.client = getAnthropicClient();
+    this.client = getOpenAIClient();
   }
 
   async plan(spec: Record<string, any>): Promise<Record<string, any>> {
@@ -39,14 +39,15 @@ export class MetaPlanner {
     const userMsg = metaPlannerUser(specJson);
     const systemPrompt = buildMetaPlannerSystem(spec);
 
-    const model = process.env.CLAUDE_MODEL || DEFAULT_MODEL;
-    const response = await this.client.messages.create({
+    const model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
+    const response = await this.client.chat.completions.create({
       model,
-      system: systemPrompt,
       messages: [
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userMsg },
       ],
-      max_tokens: 4096,
+      max_completion_tokens: 4096,
+      temperature: 0,
     });
 
     const text = this.extractText(response);
@@ -65,11 +66,11 @@ export class MetaPlanner {
     originalUserMsg: string,
     badResponse: string,
   ): Promise<Record<string, any>> {
-    const model = process.env.CLAUDE_MODEL || DEFAULT_MODEL;
-    const response = await this.client.messages.create({
+    const model = process.env.OPENAI_MODEL || DEFAULT_MODEL;
+    const response = await this.client.chat.completions.create({
       model,
-      system: systemPrompt,
       messages: [
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: originalUserMsg },
         { role: 'assistant', content: badResponse },
         {
@@ -80,7 +81,8 @@ export class MetaPlanner {
             'or commentary. Just the raw JSON.',
         },
       ],
-      max_tokens: 4096,
+      max_completion_tokens: 4096,
+      temperature: 0,
     });
 
     const text = this.extractText(response);
@@ -91,10 +93,9 @@ export class MetaPlanner {
     return plan;
   }
 
-  private extractText(response: Anthropic.Message): string {
-    for (const block of response.content) {
-      if (block.type === 'text') return block.text;
-    }
+  private extractText(response: OpenAI.Chat.Completions.ChatCompletion): string {
+    const text = response.choices[0]?.message?.content;
+    if (typeof text === 'string' && text.length > 0) return text;
     throw new Error('No text content in meta-planner response');
   }
 

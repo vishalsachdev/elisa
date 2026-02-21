@@ -63,7 +63,7 @@ The flow editor has its own set of blocks (see [Block Reference — Skill Flow](
 | **Ask User** | Pauses and asks the user a question with options. Stores the answer in a context variable. |
 | **If** | Branches on a context value. Runs nested blocks only if the value matches. No else branch. |
 | **Run Skill** | Invokes another skill and stores its output. Supports nesting up to 10 levels. |
-| **Run Agent** | Spawns a Claude agent with a prompt template and stores the result. |
+| **Run Agent** | Spawns an AI agent with a prompt template and stores the result. |
 | **Set Context** | Sets a context variable to a value. |
 | **Output** | Produces the final output of the flow. Terminal block. |
 

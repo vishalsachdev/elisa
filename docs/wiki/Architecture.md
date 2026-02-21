@@ -1,6 +1,6 @@
 # Architecture
 
-Elisa is a kid-friendly IDE that orchestrates AI agent teams to build real software and hardware. Kids compose specs using visual blocks (Blockly); the backend decomposes specs into task DAGs, executes them via the Claude Agent SDK, and streams results back in real-time.
+Elisa is a kid-friendly IDE that orchestrates AI agent teams to build real software and hardware. Kids compose specs using visual blocks (Blockly); the backend decomposes specs into task DAGs, executes them via the OpenAI chat completions API, and streams results back in real-time.
 
 ## System Topology
 
@@ -17,15 +17,15 @@ frontend/ (React 19 + Vite)         backend/ (Express 5 + TypeScript)
 | (BlockCanvas)         |---------->| POST /api/sessions/:id/*  |
 |                       |           |                           |
 | MissionControl        |  WS      | Orchestrator              |
-| (TaskDAG, CommsFeed,  |<---------| → MetaPlanner (Claude)    |
-|  Metrics, Deploy)     |  events  | → AgentRunner (SDK)       |
+| (TaskDAG, CommsFeed,  |<---------| → MetaPlanner (OpenAI)    |
+|  Metrics, Deploy)     |  events  | → AgentRunner (OpenAI)    |
 |                       |           | → TestRunner (pytest)     |
 | BottomBar             |           | → GitService (simple-git) |
 | (Git, Tests, Board,   |           | → HardwareService         |
 |  Teaching)            |           | → TeachingEngine          |
 +-----------------------+           +---------------------------+
                                              |
-                                   runs agents via SDK query() API
+                                   runs agents via OpenAI chat completions API
                                    per task (async streaming)
 ```
 
@@ -53,10 +53,10 @@ Root `package.json` manages Electron and build tooling. Frontend and backend rem
 2. Click GO → blockInterpreter converts workspace to NuggetSpec JSON
 3. POST /api/sessions (create) → POST /api/sessions/:id/start (with spec)
 4. Backend Orchestrator.run():
-   a. PLAN:    MetaPlanner calls Claude API to decompose spec into task DAG
+   a. PLAN:    MetaPlanner calls OpenAI API to decompose spec into task DAG
    b. EXECUTE: Streaming-parallel pool (Promise.race, up to 3 concurrent tasks)
                Each agent gets: role prompt + task description + context from prior tasks
-               Agent output streams via SDK → WebSocket events to frontend
+               Agent output streams via OpenAI → WebSocket events to frontend
                Git commit after each completed task (serialized via mutex)
                Token budget tracked per agent; warning at 80%, halt on exceed
    c. TEST:    TestRunner executes pytest, parses results + coverage
@@ -96,7 +96,7 @@ In-memory state for one execution run. Tracks: session ID, phase, tasks, agents,
 - **Reviewer** — Reviews code quality
 - **Custom** — User-defined persona
 
-Each agent runs via the Claude Agent SDK's `query()` API with role-specific system prompts injected from `backend/src/prompts/`.
+Each agent runs via OpenAI chat completions with role-specific system prompts injected from `backend/src/prompts/`.
 
 ## State Machine
 
@@ -112,13 +112,13 @@ idle → planning → executing → testing → reviewing → deploying → done
 ## Key Patterns
 
 - **Event-driven UI**: All frontend state updates flow through WebSocket event handlers. No polling.
-- **Agent isolation**: Each agent task runs as a separate SDK `query()` call. No shared state between agents except via context summaries.
+- **Agent isolation**: Each agent task runs as a separate OpenAI request. No shared state between agents except via context summaries.
 - **Context chain**: After each task, a summary is written to `.elisa/context/nugget_context.md`. Subsequent agents receive this as input.
 - **Graceful degradation**: Missing tools (git, pytest, mpremote, serialport) cause warnings, not crashes.
 - **Bearer token auth**: Server generates a random auth token on startup. All `/api/*` routes (except `/api/health`) require `Authorization: Bearer <token>`. WebSocket upgrades require `?token=<token>`.
 - **Content safety**: All agent prompts include a Content Safety section enforcing age-appropriate output (ages 8–14). User-controlled placeholder values are sanitized before prompt interpolation.
-- **Abort propagation**: Orchestrator's AbortController signal is forwarded to each agent's SDK `query()` call.
-- **API key management**: In dev, read from `ANTHROPIC_API_KEY` env var. In Electron, encrypted via OS keychain (`safeStorage`). Child processes receive sanitized env without the API key.
+- **Abort propagation**: Orchestrator's AbortController signal is forwarded to each agent request.
+- **API key management**: In dev, read from `OPENAI_API_KEY` env var. In Electron, encrypted via OS keychain (`safeStorage`). Child processes receive sanitized env without the API key.
 
 ## Storage
 

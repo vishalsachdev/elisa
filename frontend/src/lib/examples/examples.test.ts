@@ -141,8 +141,8 @@ describe('bundled example nuggets', () => {
           const ws = example.workspace as any;
           const blocks = (ws.blocks?.blocks ?? []).flatMap((b: any) => collectBlockTypes(b));
           const skillBlockIds = blocks
-            .filter((b) => b.type === 'use_skill')
-            .map((b) => b.fields.SKILL_ID);
+            .filter((b: { type: string }) => b.type === 'use_skill')
+            .map((b: { fields: Record<string, string> }) => b.fields.SKILL_ID);
 
           for (const skill of example.skills) {
             expect(skillBlockIds, `Missing use_skill block for "${skill.name}" (${skill.id})`).toContain(skill.id);
@@ -155,8 +155,8 @@ describe('bundled example nuggets', () => {
           const ws = example.workspace as any;
           const blocks = (ws.blocks?.blocks ?? []).flatMap((b: any) => collectBlockTypes(b));
           const ruleBlockIds = blocks
-            .filter((b) => b.type === 'use_rule')
-            .map((b) => b.fields.RULE_ID);
+            .filter((b: { type: string }) => b.type === 'use_rule')
+            .map((b: { fields: Record<string, string> }) => b.fields.RULE_ID);
 
           for (const rule of example.rules) {
             expect(ruleBlockIds, `Missing use_rule block for "${rule.name}" (${rule.id})`).toContain(rule.id);

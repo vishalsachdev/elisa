@@ -148,7 +148,7 @@ export class SerialPortalAdapter implements PortalAdapter {
   }
 }
 
-/** Generates MCP server config for injection into Claude CLI. */
+/** Generates MCP server config for agent context/invocation. */
 export class McpPortalAdapter implements PortalAdapter {
   private capabilities: PortalCapability[] = [];
   private mcpConfig: { command: string; args?: string[]; env?: Record<string, string> } = { command: '' };

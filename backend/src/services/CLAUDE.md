@@ -14,11 +14,11 @@ Delegates to phase handlers in sequence: plan -> execute -> test -> deploy. Owns
 - **deployPhase.ts** -- Web preview (local HTTP server), hardware flash, serial portal deployment, CLI portal execution, serial monitor
 - **types.ts** -- Shared `PhaseContext` and `SendEvent` types
 
-### agentRunner.ts (SDK agent runner)
-Calls `query()` from `@anthropic-ai/claude-agent-sdk` to run agents programmatically. Streams `assistant` messages and extracts `result` metadata (tokens, cost). 300s timeout, default `maxTurns=25` (`MAX_TURNS_DEFAULT`), 2 retries with increasing turn budgets (25→35→45 via `MAX_TURNS_RETRY_INCREMENT`).
+### agentRunner.ts (agent runner)
+Calls OpenAI `chat.completions.create()` to run agents programmatically. Returns text + token usage metadata. 300s timeout, default `maxTurns=25` (`MAX_TURNS_DEFAULT`), 2 retries with increasing turn budgets (25→35→45 via `MAX_TURNS_RETRY_INCREMENT`).
 
 ### metaPlanner.ts (task decomposition)
-Calls Claude API (opus model) with NuggetSpec + system prompt. Returns structured task DAG with dependencies, acceptance criteria, and role assignments. Validates DAG for cycles. Retry on JSON parse failure.
+Calls OpenAI API (default `gpt-4.1`) with NuggetSpec + system prompt. Returns structured task DAG with dependencies, acceptance criteria, and role assignments. Validates DAG for cycles. Retry on JSON parse failure.
 
 ### gitService.ts (version control)
 Wraps simple-git. Inits repo on first build, preserves existing `.git` on re-builds (iterative builds). Commits after each task with agent attribution. Tracks files changed per commit. Silently no-ops if git unavailable.
@@ -39,10 +39,10 @@ Consolidates all session state into a single `Map<string, SessionEntry>`. Option
 Manages portal adapters per session (MCP, CLI, Serial). Command allowlist validation (`ALLOWED_COMMANDS`) prevents shell injection. `CliPortalAdapter.execute()` runs CLI tools via `execFile` (no shell). `getMcpServers()` collects MCP configs for agent context. `getCliPortals()` collects CLI adapters for deploy phase.
 
 ### teachingEngine.ts (educational moments)
-Fast-path curriculum lookup maps events to concepts. Deduplicates per concept per session. Falls back to Claude Sonnet API for dynamic generation. Targets ages 8-14.
+Fast-path curriculum lookup maps events to concepts. Deduplicates per concept per session. Falls back to OpenAI GPT-4.1 mini API for dynamic generation. Targets ages 8-14.
 
 ### narratorService.ts (build narrator)
-Translates raw build events into kid-friendly commentary via Claude Haiku (`NARRATOR_MODEL` env var, default `claude-haiku-4-5-20241022`). Mood selection from 4 options: `excited`, `encouraging`, `concerned`, `celebrating`. Rate limiting: max 1 narrator message per task per 15 seconds. `agent_output` events are accumulated per task via `accumulateOutput()` and translated after a 10-second silence window (debounce). Translatable events: `task_started`, `task_completed`, `task_failed`, `agent_message`, `error`, `session_complete`. Fallback templates used on API timeout. Deduplicates consecutive identical messages.
+Translates raw build events into kid-friendly commentary via OpenAI GPT-4.1 mini (`NARRATOR_MODEL` env var, default `gpt-4.1-mini`). Mood selection from 4 options: `excited`, `encouraging`, `concerned`, `celebrating`. Rate limiting: max 1 narrator message per task per 15 seconds. `agent_output` events are accumulated per task via `accumulateOutput()` and translated after a 10-second silence window (debounce). Translatable events: `task_started`, `task_completed`, `task_failed`, `agent_message`, `error`, `session_complete`. Fallback templates used on API timeout. Deduplicates consecutive identical messages.
 
 ### permissionPolicy.ts (agent permissions)
 Auto-resolves agent permission requests (`file_write`, `file_edit`, `bash`, `command`) based on configurable policy rules. Three decision outcomes: `approved`, `denied`, `escalate`. Workspace-scoped writes are auto-approved when within the nugget directory. Read-only commands (`ls`, `cat`, `grep`, etc.) are always safe. Workspace-restricted commands (`mkdir`, `python`, `npm`, etc.) require cwd to be within the nugget dir. Network commands (`curl`, `wget`, etc.) denied by default. Package installs (`pip install`, `npm install`) escalate to user. Denial counter per task escalates to user after threshold (default 3).

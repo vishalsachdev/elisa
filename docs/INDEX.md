@@ -73,16 +73,16 @@ Block-based visual programming IDE where kids build software by snapping togethe
 | File | Role |
 |------|------|
 | `backend/src/services/orchestrator.ts` | Thin coordinator: plan -> execute -> test -> deploy |
-| `backend/src/services/metaPlanner.ts` | Decomposes NuggetSpec into task DAG via Claude API |
-| `backend/src/services/agentRunner.ts` | Executes agents via Claude Agent SDK `query()` with streaming |
+| `backend/src/services/metaPlanner.ts` | Decomposes NuggetSpec into task DAG via OpenAI API |
+| `backend/src/services/agentRunner.ts` | Executes agents via OpenAI chat completions API |
 | `backend/src/services/sessionStore.ts` | Session state management with JSON persistence |
 | `backend/src/services/gitService.ts` | Per-session git init and task-based commits |
 | `backend/src/services/hardwareService.ts` | ESP32 detection, MicroPython compile, flash, serial |
 | `backend/src/services/testRunner.ts` | pytest / Node test runner with coverage parsing |
 | `backend/src/services/skillRunner.ts` | Step-by-step SkillPlan execution with user interaction |
-| `backend/src/services/teachingEngine.ts` | Age-appropriate learning moments (curriculum + Claude) |
+| `backend/src/services/teachingEngine.ts` | Age-appropriate learning moments (curriculum + OpenAI) |
 | `backend/src/services/portalService.ts` | MCP + CLI portal adapters with command allowlist |
-| `backend/src/services/narratorService.ts` | Generates narrator messages for build events (Claude Haiku) |
+| `backend/src/services/narratorService.ts` | Generates narrator messages for build events (OpenAI GPT-4.1 mini) |
 | `backend/src/services/permissionPolicy.ts` | Auto-resolves agent permission requests based on policy rules |
 
 ### Phases
@@ -108,9 +108,9 @@ Block-based visual programming IDE where kids build software by snapping togethe
 | `backend/src/utils/withTimeout.ts` | Generic promise timeout wrapper with AbortSignal support |
 | `backend/src/utils/constants.ts` | Named constants for timeouts, limits, intervals, default model |
 | `backend/src/utils/pathValidator.ts` | Workspace path validation (blocklist for system/sensitive dirs) |
-| `backend/src/utils/safeEnv.ts` | Sanitized process.env copy (strips ANTHROPIC_API_KEY) |
+| `backend/src/utils/safeEnv.ts` | Sanitized process.env copy (strips OPENAI_API_KEY) |
 | `backend/src/utils/findFreePort.ts` | Scans for available TCP port from a starting port |
-| `backend/src/utils/anthropicClient.ts` | Singleton factory for the Anthropic SDK client |
+| `backend/src/utils/anthropicClient.ts` | Legacy compatibility alias (OpenAI-backed) |
 
 ### Prompts
 
@@ -174,7 +174,7 @@ Blockly workspace
   -> REST POST /api/sessions/:id/start
   -> orchestrator -> metaPlanner -> task DAG
   -> executePhase (3 concurrent agents via Promise.race)
-  -> agent output streamed via SDK -> WebSocket events
+  -> agent output streamed via OpenAI -> WebSocket events
   -> useBuildSession -> React UI state updates
   -> (optional) "Keep working" -> design phase -> re-build with existing workspace + git history
 ```

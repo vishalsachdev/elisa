@@ -4,7 +4,7 @@ import BoardOutput from './BoardOutput';
 
 describe('BoardOutput', () => {
   it('shows empty state when no serial lines', () => {
-    render(<BoardOutput serialLines={[]} />);
+    render(<BoardOutput serialLines={[]} boardInfo={null} />);
     expect(screen.getByText('Connect your board to see its output')).toBeInTheDocument();
   });
 
@@ -13,7 +13,7 @@ describe('BoardOutput', () => {
       { line: 'Hello from board', timestamp: '2026-02-10T12:00:00Z' },
       { line: 'LED on', timestamp: '2026-02-10T12:00:01Z' },
     ];
-    render(<BoardOutput serialLines={lines} />);
+    render(<BoardOutput serialLines={lines} boardInfo={null} />);
     expect(screen.getByText('Hello from board')).toBeInTheDocument();
     expect(screen.getByText('LED on')).toBeInTheDocument();
   });
@@ -24,7 +24,7 @@ describe('BoardOutput', () => {
       { line: 'Line 2', timestamp: '2026-02-10T12:00:01Z' },
       { line: 'Line 3', timestamp: '2026-02-10T12:00:02Z' },
     ];
-    render(<BoardOutput serialLines={lines} />);
+    render(<BoardOutput serialLines={lines} boardInfo={null} />);
     expect(screen.getByText('Line 1')).toBeInTheDocument();
     expect(screen.getByText('Line 3')).toBeInTheDocument();
   });

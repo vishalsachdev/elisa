@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-vi.mock('@anthropic-ai/sdk', () => {
+vi.mock('openai', () => {
   return {
-    default: class MockAnthropic {
+    default: class MockOpenAI {
       _id = Math.random();
     },
   };

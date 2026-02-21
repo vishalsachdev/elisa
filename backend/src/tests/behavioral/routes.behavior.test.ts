@@ -189,6 +189,29 @@ describe('POST /api/sessions/:id/start', () => {
     expect(body.detail).toMatch(/workspace_path/i);
   });
 
+  it('resets state to idle when workspace_path validation fails after claim', async () => {
+    await startTestServer();
+    const createRes = await fetch(`${baseUrl()}/api/sessions`, { method: 'POST', headers: authHeaders() });
+    const { session_id } = await createRes.json();
+
+    const validSpec = { nugget: { goal: 'Build an app', type: 'software' } };
+    const badRes = await fetch(`${baseUrl()}/api/sessions/${session_id}/start`, {
+      method: 'POST',
+      headers: jsonAuthHeaders(),
+      body: JSON.stringify({ spec: validSpec, workspace_path: 12345 }),
+    });
+    expect(badRes.status).toBe(400);
+
+    const retryRes = await fetch(`${baseUrl()}/api/sessions/${session_id}/start`, {
+      method: 'POST',
+      headers: jsonAuthHeaders(),
+      body: JSON.stringify({ spec: validSpec }),
+    });
+    expect(retryRes.status).toBe(200);
+    const retryBody = await retryRes.json();
+    expect(retryBody.status).toBe('started');
+  });
+
   it('rejects workspace_path exceeding 500 characters', async () => {
     await startTestServer();
     const createRes = await fetch(`${baseUrl()}/api/sessions`, { method: 'POST', headers: authHeaders() });

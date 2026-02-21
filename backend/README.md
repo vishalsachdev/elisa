@@ -8,7 +8,7 @@ Express 5 + WebSocket server. Orchestrates AI agents, manages build sessions, an
 - ws 8 (WebSocket)
 - simple-git 3 (git operations)
 - serialport 12 (ESP32 communication)
-- @anthropic-ai/sdk (Claude API for planner/teaching)
+- openai (OpenAI API client for planner/agents/teaching/narrator)
 - zod 4 (validation)
 
 ## Dev Commands
@@ -30,23 +30,23 @@ src/
     hardware.ts        /api/hardware/* endpoints
   services/
     orchestrator.ts    Central build pipeline controller
-    metaPlanner.ts     ProjectSpec -> task DAG decomposition (Claude API)
-    agentRunner.ts     Runs agents via SDK query() API per task
+    metaPlanner.ts     ProjectSpec -> task DAG decomposition (OpenAI API)
+    agentRunner.ts     Runs agents via OpenAI chat completions per task
     gitService.ts      Per-session git repo init + commits
     testRunner.ts      pytest execution + coverage parsing
     hardwareService.ts ESP32 detect/compile/flash/serial monitor
-    teachingEngine.ts  Concept curriculum, dedup, Claude Sonnet fallback
+    teachingEngine.ts  Concept curriculum, dedup, OpenAI GPT-4.1 mini fallback
 ```
 
 ## Service Architecture
 
 **Build pipeline** (managed by Orchestrator):
 
-1. `MetaPlanner.plan(spec)` -- Calls Claude (model: `claude-opus-4-6`) to decompose ProjectSpec into a task DAG with dependencies. Validates for cycles. Retries on parse failure.
+1. `MetaPlanner.plan(spec)` -- Calls OpenAI (model: `gpt-4.1`) to decompose ProjectSpec into a task DAG with dependencies. Validates for cycles. Retries on parse failure.
 2. **Task execution loop** -- For each ready task:
-   - `AgentRunner.execute(prompt)` -- Calls SDK `query()` to run agent. Streams output/tokens via async iteration. Timeout: 300s, retries: 2, model: `claude-opus-4-6`.
+   - `AgentRunner.execute(prompt)` -- Calls OpenAI chat completions API to run agent. Timeout: 300s, retries: 2, model: `gpt-4.1`.
    - `GitService.commit()` -- Commits changes with agent attribution.
-   - `TeachingEngine.check()` -- Surfaces teaching moments (deduped per concept per session). Falls back to Claude Sonnet.
+   - `TeachingEngine.check()` -- Surfaces teaching moments (deduped per concept per session). Falls back to OpenAI GPT-4.1 mini.
 3. `TestRunner.runTests()` -- Runs `pytest tests/ -v --cov=src`. Parses output. Timeout: 120s.
 4. `HardwareService.flash()` -- If ESP32 target: detect USB, compile with `py_compile`, flash via `mpremote`. Timeout: 60s.
 

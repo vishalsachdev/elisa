@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'node:http';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { HardwareService } from './services/hardwareService.js';
 import { SessionStore } from './services/sessionStore.js';
 import { createSessionRouter } from './routes/sessions.js';
@@ -36,20 +36,20 @@ const healthStatus: HealthStatus = {
 async function validateStartupHealth(): Promise<void> {
   // Check Agent SDK
   try {
-    await import('@anthropic-ai/claude-agent-sdk');
+    await import('openai');
     healthStatus.agentSdk = 'available';
   } catch {
     healthStatus.agentSdk = 'not_found';
   }
 
   // Check API key
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     healthStatus.apiKey = 'missing';
     return;
   }
 
   try {
-    await new Anthropic().models.list({ limit: 1 });
+    await new OpenAI().models.list();
     healthStatus.apiKey = 'valid';
   } catch (err: any) {
     healthStatus.apiKey = 'invalid';
@@ -125,13 +125,13 @@ function createApp(staticDir?: string, authToken?: string) {
   // Health (no auth required)
   app.get('/api/health', async (_req, res) => {
     // Live-check API key presence (env var may be set after startup via config endpoint)
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       healthStatus.apiKey = 'missing';
       healthStatus.apiKeyError = undefined;
     } else if (healthStatus.apiKey === 'missing' || healthStatus.apiKey === 'unchecked') {
-      // Key appeared since last check — validate with Anthropic API
+      // Key appeared since last check — validate with OpenAI API
       try {
-        await new Anthropic().models.list({ limit: 1 });
+        await new OpenAI().models.list();
         healthStatus.apiKey = 'valid';
         healthStatus.apiKeyError = undefined;
       } catch (err: any) {
@@ -170,10 +170,10 @@ function createApp(staticDir?: string, authToken?: string) {
         res.status(400).json({ detail: 'apiKey is required' });
         return;
       }
-      process.env.ANTHROPIC_API_KEY = apiKey;
+      process.env.OPENAI_API_KEY = apiKey;
       // Validate the newly-set key
       try {
-        await new Anthropic().models.list({ limit: 1 });
+        await new OpenAI().models.list();
         healthStatus.apiKey = 'valid';
         healthStatus.apiKeyError = undefined;
       } catch (err: any) {
@@ -313,8 +313,10 @@ export function startServer(
     }, 10_000).unref();
   }
 
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  const onSigterm = () => gracefulShutdown('SIGTERM');
+  const onSigint = () => gracefulShutdown('SIGINT');
+  process.on('SIGTERM', onSigterm);
+  process.on('SIGINT', onSigint);
 
   // Prune stale sessions every 10 minutes
   const pruneInterval = setInterval(() => {
@@ -324,6 +326,12 @@ export function startServer(
     }
   }, 600_000);
   pruneInterval.unref();
+
+  server.on('close', () => {
+    process.off('SIGTERM', onSigterm);
+    process.off('SIGINT', onSigint);
+    clearInterval(pruneInterval);
+  });
 
   return new Promise((resolve) => {
     server.listen(port, '127.0.0.1', () => {

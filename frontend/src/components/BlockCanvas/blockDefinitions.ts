@@ -582,10 +582,11 @@ export function registerBlocks(): void {
       });
 
       // When capability changes, rebuild param inputs
-      capDropdown.setValidator((newValue: string) => {
+      capDropdown.setValidator((newValue: string | null) => {
         removeParamInputs(this);
         if (newValue) {
           const portalId = portalDropdown.getValue();
+          if (!portalId) return undefined;
           // Defer to next tick so Blockly has finished updating the field value
           setTimeout(() => addParamInputs(this, portalId, newValue, kind), 0);
         }

@@ -67,7 +67,7 @@ const skillFlowBlockDefs = [
     previousStatement: null,
     nextStatement: null,
     colour: 315,
-    tooltip: 'Spawn a Claude agent with a prompt template. Use {{key}} syntax to insert context values (e.g. {{answer}}, {{topic}}).',
+    tooltip: 'Spawn an AI agent with a prompt template. Use {{key}} syntax to insert context values (e.g. {{answer}}, {{topic}}).',
     helpUrl: '',
   },
   {

@@ -25,7 +25,7 @@ const multiSelectQuestion: QuestionPayload = {
   options: [
     { label: 'Animations', description: 'Smooth transitions' },
     { label: 'Sound', description: 'Audio feedback' },
-    { label: 'Haptics' },
+    { label: 'Haptics', description: '' },
   ],
 };
 

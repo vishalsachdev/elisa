@@ -16,7 +16,7 @@ export function useWebSocket({ sessionId, onEvent }: UseWebSocketOptions) {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retriesRef = useRef(0);
   const onEventRef = useRef(onEvent);
-  const connectRef = useRef<() => void>();
+  const connectRef = useRef<(() => void) | null>(null);
   const [connected, setConnected] = useState(false);
   // Holds resolve callbacks for waitForOpen callers
   const openResolversRef = useRef<Array<() => void>>([]);

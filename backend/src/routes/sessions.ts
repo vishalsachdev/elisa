@@ -102,17 +102,20 @@ export function createSessionRouter({ store, sendEvent, hardwareService }: Sessi
     let workspacePath: string | undefined;
     if (rawWorkspacePath) {
       if (typeof rawWorkspacePath !== 'string' || rawWorkspacePath.length > 500) {
+        entry.session.state = 'idle';
         res.status(400).json({ detail: 'workspace_path must be a string of at most 500 characters' });
         return;
       }
       const validation = validateWorkspacePath(rawWorkspacePath);
       if (!validation.valid) {
+        entry.session.state = 'idle';
         res.status(400).json({ detail: validation.reason });
         return;
       }
       try {
         fs.mkdirSync(validation.resolved, { recursive: true });
       } catch (err: any) {
+        entry.session.state = 'idle';
         res.status(400).json({ detail: `Cannot create workspace directory: ${err.message}` });
         return;
       }

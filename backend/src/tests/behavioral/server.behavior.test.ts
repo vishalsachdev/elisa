@@ -88,6 +88,21 @@ describe('startServer', () => {
     expect(body).toHaveProperty('apiKey');
     expect(body).toHaveProperty('agentSdk');
   });
+
+  it('cleans up SIGTERM/SIGINT listeners when server closes', async () => {
+    const baseSigterm = process.listenerCount('SIGTERM');
+    const baseSigint = process.listenerCount('SIGINT');
+
+    const first = await startServer(0);
+    await new Promise<void>((resolve) => first.server.close(() => resolve()));
+    expect(process.listenerCount('SIGTERM')).toBe(baseSigterm);
+    expect(process.listenerCount('SIGINT')).toBe(baseSigint);
+
+    const second = await startServer(0);
+    await new Promise<void>((resolve) => second.server.close(() => resolve()));
+    expect(process.listenerCount('SIGTERM')).toBe(baseSigterm);
+    expect(process.listenerCount('SIGINT')).toBe(baseSigint);
+  });
 });
 
 describe('CORS behavior', () => {

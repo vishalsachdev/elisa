@@ -43,9 +43,9 @@ design → building → review (optional) → deploy → done
 
 1. The block interpreter converts your workspace into a **NuggetSpec** JSON (validated via Zod schema).
 2. The NuggetSpec is sent to the backend via `POST /api/sessions/:id/start`.
-3. The **MetaPlanner** (Claude Opus) decomposes the spec into a **task DAG** — a directed acyclic graph of tasks with dependencies.
+3. The **MetaPlanner** (OpenAI GPT-4.1) decomposes the spec into a **task DAG** — a directed acyclic graph of tasks with dependencies.
 4. The **Orchestrator** executes tasks using a streaming-parallel pool (up to 3 concurrent agents via Promise.race).
-5. Each agent runs via the Claude Agent SDK's `query()` API with role-specific prompts.
+5. Each agent runs via OpenAI chat completions with role-specific prompts.
 6. After each task, a git commit is created and a context summary is written for subsequent agents.
 7. Tests run via pytest (Python) or Node test runner (JavaScript).
 8. Deployment happens last: web preview, ESP32 flash, or portal execution.

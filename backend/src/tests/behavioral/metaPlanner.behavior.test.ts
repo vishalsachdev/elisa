@@ -2,7 +2,7 @@
  *
  * Tests JSON parse retry flow, validate() edge cases (circular deps,
  * missing agents, bad task refs, path filtering, persona cap).
- * The Anthropic SDK is mocked; MetaPlanner's own logic runs for real.
+ * The OpenAI SDK is mocked; MetaPlanner's own logic runs for real.
  */
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
@@ -11,11 +11,11 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 const mockCreate = vi.fn();
 
-vi.mock('@anthropic-ai/sdk', () => {
-  class MockAnthropic {
-    messages = { create: mockCreate };
+vi.mock('openai', () => {
+  class MockOpenAI {
+    chat = { completions: { create: mockCreate } };
   }
-  return { default: MockAnthropic };
+  return { default: MockOpenAI };
 });
 
 import { MetaPlanner } from '../../services/metaPlanner.js';
@@ -24,7 +24,7 @@ import { MetaPlanner } from '../../services/metaPlanner.js';
 
 function makeTextResponse(text: string) {
   return {
-    content: [{ type: 'text', text }],
+    choices: [{ message: { content: text } }],
   };
 }
 
@@ -93,11 +93,12 @@ describe('successful planning', () => {
 
     // The mock receives the call -- verify the spec was augmented with agents
     const callArgs = mockCreate.mock.calls[0][0];
-    const userContent = callArgs.messages[0].content;
+    const userMessage = callArgs.messages.find((m: { role: string }) => m.role === 'user');
+    const userContent = userMessage?.content ?? '';
     expect(userContent).toContain('"agents"');
   });
 
-  it('does not use assistant prefill (required for Opus model compatibility)', async () => {
+  it('does not use assistant prefill on initial request', async () => {
     const planner = new MetaPlanner();
     configureValidResponse();
 
@@ -105,11 +106,8 @@ describe('successful planning', () => {
 
     const callArgs = mockCreate.mock.calls[0][0];
     const messages = callArgs.messages;
-    // All messages must be user role -- no assistant prefill
-    for (const msg of messages) {
-      expect(msg.role).toBe('user');
-    }
-    // Conversation must end with a user message
+    expect(messages.some((msg: { role: string }) => msg.role === 'assistant')).toBe(false);
+    expect(messages.some((msg: { role: string }) => msg.role === 'system')).toBe(true);
     expect(messages[messages.length - 1].role).toBe('user');
   });
 });
@@ -385,7 +383,7 @@ describe('validate() edge cases', () => {
 describe('API error handling', () => {
   it('throws when API returns no text content', async () => {
     const planner = new MetaPlanner();
-    mockCreate.mockResolvedValueOnce({ content: [] });
+    mockCreate.mockResolvedValueOnce({ choices: [{ message: {} }] });
 
     await expect(planner.plan({ nugget: { goal: 'test', type: 'software' } }))
       .rejects.toThrow('No text content');

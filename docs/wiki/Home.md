@@ -2,7 +2,7 @@
 
 **A kid-friendly IDE where children orchestrate AI agent teams to build real software and hardware.**
 
-Elisa is a visual programming tool inspired by Scratch. Kids snap together blocks to describe what they want to build — goals, features, style, agent teams, and deployment targets. Behind the scenes, those blocks drive AI agents (powered by Claude) that plan tasks, write code, run tests, and deploy the result. The output is real, working software: a website they can share, or code flashed to an ESP32 microcontroller.
+Elisa is a visual programming tool inspired by Scratch. Kids snap together blocks to describe what they want to build — goals, features, style, agent teams, and deployment targets. Behind the scenes, those blocks drive AI agents (powered by OpenAI) that plan tasks, write code, run tests, and deploy the result. The output is real, working software: a website they can share, or code flashed to an ESP32 microcontroller.
 
 Elisa is simultaneously a **teaching tool** and a **doing tool**. At every step, it explains engineering concepts — source control, testing, decomposition, code review — in kid-friendly language, woven into the act of building.
 
@@ -58,7 +58,7 @@ See the [Getting Started](Getting-Started) guide for full setup instructions.
 |-------|-------------|
 | Desktop | Electron 35, electron-builder, electron-store + safeStorage |
 | Frontend | React 19, Vite 7, TypeScript 5.9, Tailwind CSS 4, Blockly 12 |
-| Backend | Express 5, TypeScript 5.9, ws 8, Zod 4, Claude Agent SDK |
+| Backend | Express 5, TypeScript 5.9, ws 8, Zod 4, OpenAI chat completions API |
 | Hardware | MicroPython on ESP32 via serialport + mpremote |
 | Testing | Vitest + Testing Library |
 

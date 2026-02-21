@@ -139,7 +139,7 @@ All events flow server to client as JSON with a `type` discriminator field.
 
 ## Narrator System
 
-The narrator translates raw build events into kid-friendly commentary via Claude Haiku.
+The narrator translates raw build events into kid-friendly commentary via OpenAI GPT-4.1 mini.
 
 ### Trigger Events
 
@@ -159,7 +159,7 @@ Narrator messages are triggered by these build events: `task_started`, `task_com
 
 ### Configuration
 
-- `NARRATOR_MODEL` env var overrides the model (default: `claude-haiku-4-5-20241022`)
+- `NARRATOR_MODEL` env var overrides the model (default: `gpt-4.1-mini`)
 
 ### Debounce
 
@@ -298,7 +298,7 @@ All steps share `id: string` (max 200 chars). The 6 step types:
 | `ask_user` | `question` (max 2000), `header` (max 200), `options: string[]` (max 50 items), `storeAs` | Pauses execution, presents choice to user. Answer stored in context under `storeAs`. |
 | `branch` | `contextKey`, `matchValue` (max 500), `thenSteps: SkillStep[]` (max 50, recursive) | Runs `thenSteps` only if `context[contextKey] === matchValue`. No else. |
 | `invoke_skill` | `skillId`, `storeAs` | Calls another skill. Cycle detection (max depth 10). Result stored under `storeAs`. |
-| `run_agent` | `prompt` (max 5000), `storeAs` | Spawns a Claude agent. Prompt supports `{{key}}` templates. Result stored under `storeAs`. |
+| `run_agent` | `prompt` (max 5000), `storeAs` | Spawns an AI agent. Prompt supports `{{key}}` templates. Result stored under `storeAs`. |
 | `set_context` | `key`, `value` (max 5000) | Sets a context variable. Value supports `{{key}}` templates. |
 | `output` | `template` (max 5000) | Produces final skill output. Template supports `{{key}}` syntax. |
 

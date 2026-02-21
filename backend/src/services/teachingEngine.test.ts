@@ -2,11 +2,11 @@
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// Mock @anthropic-ai/sdk at module level before importing TeachingEngine
+// Mock OpenAI SDK at module level before importing TeachingEngine
 const mockCreate = vi.fn();
-vi.mock('@anthropic-ai/sdk', () => ({
-  default: class MockAnthropic {
-    messages = { create: mockCreate };
+vi.mock('openai', () => ({
+  default: class MockOpenAI {
+    chat = { completions: { create: mockCreate } };
   },
 }));
 
@@ -73,7 +73,7 @@ describe('TeachingEngine', () => {
       tell_me_more: 'Custom tell me more',
     };
     mockCreate.mockResolvedValue({
-      content: [{ type: 'text', text: JSON.stringify(apiMoment) }],
+      choices: [{ message: { content: JSON.stringify(apiMoment) } }],
     });
 
     // portal_used is in TRIGGER_MAP but its curriculum entry doesn't exist,

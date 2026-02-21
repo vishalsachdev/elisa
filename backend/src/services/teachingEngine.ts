@@ -1,13 +1,13 @@
 /** Generates kid-friendly explanations of engineering concepts. */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import {
   getCurriculumMoment,
   TEACHING_SYSTEM_PROMPT,
   teachingUserPrompt,
   type TeachingMomentData,
 } from '../prompts/teaching.js';
-import { getAnthropicClient } from '../utils/anthropicClient.js';
+import { getOpenAIClient } from '../utils/openaiClient.js';
 
 const TRIGGER_MAP: Record<string, [string, string]> = {
   plan_ready: ['decomposition', 'task_breakdown'],
@@ -31,7 +31,7 @@ const TRIGGER_MAP: Record<string, [string, string]> = {
 export class TeachingEngine {
   private shownConcepts = new Set<string>();
   private commitCount = 0;
-  private client: Anthropic | null = null;
+  private client: OpenAI | null = null;
 
   async getMoment(
     eventType: string,
@@ -86,20 +86,22 @@ export class TeachingEngine {
     nuggetType: string,
   ): Promise<TeachingMomentData | null> {
     if (!this.client) {
-      this.client = getAnthropicClient();
+      this.client = getOpenAIClient();
     }
 
     const prompt = teachingUserPrompt(eventType, eventDetails, nuggetType || 'software');
 
-    // Use a cheap model for small teaching JSON -- no need for Opus here
-    const response = await this.client.messages.create({
-      model: 'claude-haiku-4-20250414',
-      max_tokens: 300,
-      system: TEACHING_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
+    const response = await this.client.chat.completions.create({
+      model: process.env.TEACHING_MODEL || process.env.OPENAI_MODEL || 'gpt-4.1-mini',
+      max_completion_tokens: 300,
+      temperature: 0.2,
+      messages: [
+        { role: 'system', content: TEACHING_SYSTEM_PROMPT },
+        { role: 'user', content: prompt },
+      ],
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = response.choices[0]?.message?.content ?? '';
     try {
       return JSON.parse(text) as TeachingMomentData;
     } catch {

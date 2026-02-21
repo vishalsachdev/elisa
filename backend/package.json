@@ -14,11 +14,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.39",
-    "@anthropic-ai/sdk": "^0.74.0",
     "archiver": "^7.0.1",
     "dotenv": "^17.2.4",
     "express": "^5",
+    "openai": "^6.4.0",
     "serialport": "^12",
     "simple-git": "^3",
     "ws": "^8",

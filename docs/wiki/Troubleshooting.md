@@ -15,12 +15,12 @@ The readiness badge in the top-right corner tells you if Elisa is ready to build
 ## API Key Issues
 
 **"No API key found"**
-- In the Electron app: Go to settings and enter your Anthropic API key.
-- In dev mode: Set the `ANTHROPIC_API_KEY` environment variable before starting the backend.
+- In the Electron app: Go to settings and enter your OpenAI API key.
+- In dev mode: Set the `OPENAI_API_KEY` environment variable before starting the backend.
 
 **"That API key didn't work"**
-- Check that you copied the full key (starts with `sk-ant-`).
-- Verify the key is active at [console.anthropic.com](https://console.anthropic.com).
+- Check that you copied the full key (starts with `sk-`).
+- Verify the key is active at [platform.openai.com](https://platform.openai.com).
 - Make sure there are no extra spaces or newline characters.
 
 ## Backend Not Running
@@ -86,7 +86,7 @@ To work within the budget:
 
 | Error | Meaning | Fix |
 |-------|---------|-----|
-| "Elisa can't connect to her AI brain" | API key issue | Check your Anthropic API key |
+| "Elisa can't connect to her AI brain" | API key issue | Check your OpenAI API key |
 | "Elisa couldn't get ready to build" | Session creation failed | Restart the backend |
 | "No ESP32 board detected" | Hardware flash failed | Connect board, check USB cable |
 | "mpremote not found" | Flash tool missing | Run `pip install mpremote` |

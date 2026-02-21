@@ -5,35 +5,18 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-// -- Mock SDK before importing agentRunner --
-vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
-  query: vi.fn(),
+const mockCreate = vi.hoisted(() => vi.fn());
+vi.mock('openai', () => ({
+  default: class MockOpenAI {
+    chat = { completions: { create: mockCreate } };
+  },
 }));
 
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import { AgentRunner } from '../../services/agentRunner.js';
+import { resetOpenAIClient } from '../../utils/openaiClient.js';
 import { SessionLogger } from '../../utils/sessionLogger.js';
 import { ContextManager } from '../../utils/contextManager.js';
 import { SessionStore } from '../../services/sessionStore.js';
-
-const mockQuery = vi.mocked(query);
-
-async function* asyncIterable<T>(...items: T[]): AsyncGenerator<T, void> {
-  for (const item of items) {
-    yield item;
-  }
-}
-
-function makeResultMessage(overrides: Record<string, any> = {}) {
-  return {
-    type: 'result',
-    subtype: 'success',
-    result: 'Done',
-    total_cost_usd: 0.05,
-    usage: { input_tokens: 100, output_tokens: 50 },
-    ...overrides,
-  };
-}
 
 // ============================================================
 // #75: AbortSignal propagation to Agent SDK
@@ -41,14 +24,18 @@ function makeResultMessage(overrides: Record<string, any> = {}) {
 
 describe('AbortSignal propagation (#75)', () => {
   beforeEach(() => {
-    mockQuery.mockReset();
+    mockCreate.mockReset();
+    resetOpenAIClient();
   });
 
-  it('links external abortSignal to internal AbortController', async () => {
-    let capturedAbortController: AbortController | undefined;
-    mockQuery.mockImplementation((opts: any) => {
-      capturedAbortController = opts.options?.abortController;
-      return asyncIterable(makeResultMessage()) as any;
+  it('links external abortSignal to OpenAI request signal', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    mockCreate.mockImplementation((_req: any, options?: { signal?: AbortSignal }) => {
+      capturedSignal = options?.signal;
+      return Promise.resolve({
+        choices: [{ message: { content: 'Done' } }],
+        usage: { prompt_tokens: 100, completion_tokens: 50 },
+      });
     });
 
     const externalController = new AbortController();
@@ -62,19 +49,22 @@ describe('AbortSignal propagation (#75)', () => {
       abortSignal: externalController.signal,
     });
 
-    expect(capturedAbortController).toBeDefined();
-    expect(capturedAbortController!.signal.aborted).toBe(false);
+    expect(capturedSignal).toBeDefined();
+    expect(capturedSignal!.aborted).toBe(false);
 
-    // Abort the external signal -> internal controller should follow
+    // Abort the external signal -> internal request signal should follow
     externalController.abort();
-    expect(capturedAbortController!.signal.aborted).toBe(true);
+    expect(capturedSignal!.aborted).toBe(true);
   });
 
-  it('does not abort internal controller when no external signal provided', async () => {
-    let capturedAbortController: AbortController | undefined;
-    mockQuery.mockImplementation((opts: any) => {
-      capturedAbortController = opts.options?.abortController;
-      return asyncIterable(makeResultMessage()) as any;
+  it('does not abort request signal when no external signal provided', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    mockCreate.mockImplementation((_req: any, options?: { signal?: AbortSignal }) => {
+      capturedSignal = options?.signal;
+      return Promise.resolve({
+        choices: [{ message: { content: 'Done' } }],
+        usage: { prompt_tokens: 100, completion_tokens: 50 },
+      });
     });
 
     const runner = new AgentRunner();
@@ -86,15 +76,18 @@ describe('AbortSignal propagation (#75)', () => {
       workingDir: '/tmp/test',
     });
 
-    expect(capturedAbortController).toBeDefined();
-    expect(capturedAbortController!.signal.aborted).toBe(false);
+    expect(capturedSignal).toBeDefined();
+    expect(capturedSignal!.aborted).toBe(false);
   });
 
-  it('already-aborted external signal immediately aborts internal controller', async () => {
-    let capturedAbortController: AbortController | undefined;
-    mockQuery.mockImplementation((opts: any) => {
-      capturedAbortController = opts.options?.abortController;
-      return asyncIterable(makeResultMessage()) as any;
+  it('already-aborted external signal immediately aborts request signal', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    mockCreate.mockImplementation((_req: any, options?: { signal?: AbortSignal }) => {
+      capturedSignal = options?.signal;
+      return Promise.resolve({
+        choices: [{ message: { content: 'Done' } }],
+        usage: { prompt_tokens: 100, completion_tokens: 50 },
+      });
     });
 
     const externalController = new AbortController();
@@ -110,7 +103,7 @@ describe('AbortSignal propagation (#75)', () => {
       abortSignal: externalController.signal,
     });
 
-    expect(capturedAbortController!.signal.aborted).toBe(true);
+    expect(capturedSignal!.aborted).toBe(true);
   });
 });
 

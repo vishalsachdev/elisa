@@ -1,12 +1,15 @@
-/** Singleton factory for the Anthropic SDK client. */
+/** Legacy alias maintained for backwards-compatibility in tests.
+ *
+ * Prefer using `openaiClient.ts` in runtime code.
+ */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
-let instance: Anthropic | null = null;
+let instance: OpenAI | null = null;
 
-export function getAnthropicClient(): Anthropic {
+export function getAnthropicClient(): OpenAI {
   if (!instance) {
-    instance = new Anthropic();
+    instance = new OpenAI();
   }
   return instance;
 }

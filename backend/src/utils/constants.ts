@@ -1,7 +1,7 @@
 /** Shared constants for magic numbers used across the backend. */
 
-/** Default Claude model used by agents and meta-planner. */
-export const DEFAULT_MODEL = 'claude-opus-4-6';
+/** Default OpenAI model used by agents and meta-planner. */
+export const DEFAULT_MODEL = 'gpt-4.1';
 
 /** Agent execution timeout in seconds. */
 export const AGENT_TIMEOUT_SECONDS = 300;

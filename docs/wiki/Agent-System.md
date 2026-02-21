@@ -52,12 +52,12 @@ Each agent receives a system prompt constructed from:
 
 ## Execution Model
 
-Each agent task runs as a separate Claude Agent SDK `query()` call via `AgentRunner`:
+Each agent task runs as a separate OpenAI chat completions call via `AgentRunner`:
 
 ```
 AgentRunner.execute(prompt, options)
-  → SDK query() with permissionMode: 'bypassPermissions', maxTurns: 20
-  → Streams assistant messages via async iteration
+  → OpenAI chat.completions.create()
+  → Returns assistant text
   → Extracts result metadata (tokens, cost)
   → Returns result summary
 ```
@@ -65,7 +65,7 @@ AgentRunner.execute(prompt, options)
 **Configuration:**
 - Timeout: 300 seconds per agent
 - Retries: Up to 2 retries on failure
-- Model: `claude-opus-4-6` (configurable via `CLAUDE_MODEL`)
+- Model: `gpt-4.1` (configurable via `OPENAI_MODEL`)
 - Max turns: 20
 
 ## Streaming-Parallel Execution
@@ -123,7 +123,7 @@ After 3 denied permissions per task, the policy escalates to the user.
 
 ## Task Decomposition (MetaPlanner)
 
-The MetaPlanner calls Claude (Opus model) to decompose a NuggetSpec into a task DAG:
+The MetaPlanner calls OpenAI (default `gpt-4.1`) to decompose a NuggetSpec into a task DAG:
 
 1. Receives the full NuggetSpec as input
 2. Applies decomposition rules (4–12 tasks, each 1–5 minutes, no cycles)
@@ -146,7 +146,7 @@ The TeachingEngine surfaces contextual learning moments during builds:
 
 1. **Fast-path lookup**: Maps build events to a curriculum of pre-defined concepts
 2. **Deduplication**: Each concept shown only once per session
-3. **API fallback**: Falls back to Claude Sonnet for dynamic generation
+3. **API fallback**: Falls back to OpenAI GPT-4.1 mini for dynamic generation
 4. **Target audience**: Ages 8–14
 
 Concepts covered: source control, testing, decomposition, code review, architecture, hardware (GPIO, LoRa, compilation, flashing).
@@ -155,7 +155,7 @@ Concepts covered: source control, testing, decomposition, code review, architect
 
 The NarratorService translates raw build events into kid-friendly commentary:
 
-- Uses Claude Haiku (`NARRATOR_MODEL` env var)
+- Uses OpenAI GPT-4.1 mini (`NARRATOR_MODEL` env var)
 - 4 moods: excited, encouraging, concerned, celebrating
 - Rate limited: max 1 message per task per 15 seconds
 - `agent_output` events debounced (10-second silence window)
@@ -178,7 +178,7 @@ The NarratorService translates raw build events into kid-friendly commentary:
 When a build is cancelled (STOP button or error):
 
 1. `Orchestrator.cancel()` triggers the AbortController
-2. Signal propagated to all active SDK `query()` calls
+2. Signal propagated to all active OpenAI requests
 3. Agents abort immediately
 4. Session state set to `done`
 5. WebSocket connections cleaned up

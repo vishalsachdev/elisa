@@ -6,6 +6,7 @@ const defaultProps = {
   onOpen: vi.fn(),
   onSave: vi.fn(),
   onSkills: vi.fn(),
+  onRules: vi.fn(),
   onPortals: vi.fn(),
   onExamples: vi.fn(),
   onHelp: vi.fn(),
@@ -14,12 +15,13 @@ const defaultProps = {
 };
 
 describe('WorkspaceSidebar', () => {
-  it('renders all seven buttons', () => {
+  it('renders all eight buttons', () => {
     render(<WorkspaceSidebar {...defaultProps} />);
     expect(screen.getByText('Folder')).toBeInTheDocument();
     expect(screen.getByText('Open')).toBeInTheDocument();
     expect(screen.getByText('Save')).toBeInTheDocument();
     expect(screen.getByText('Skills')).toBeInTheDocument();
+    expect(screen.getByText('Rules')).toBeInTheDocument();
     expect(screen.getByText('Portals')).toBeInTheDocument();
     expect(screen.getByText('Examples')).toBeInTheDocument();
     expect(screen.getByText('Help')).toBeInTheDocument();
@@ -44,6 +46,13 @@ describe('WorkspaceSidebar', () => {
     render(<WorkspaceSidebar {...defaultProps} onSkills={onSkills} />);
     fireEvent.click(screen.getByText('Skills'));
     expect(onSkills).toHaveBeenCalled();
+  });
+
+  it('fires onRules when Rules is clicked', () => {
+    const onRules = vi.fn();
+    render(<WorkspaceSidebar {...defaultProps} onRules={onRules} />);
+    fireEvent.click(screen.getByText('Rules'));
+    expect(onRules).toHaveBeenCalled();
   });
 
   it('fires onPortals when Portals is clicked', () => {
@@ -79,7 +88,7 @@ describe('WorkspaceSidebar', () => {
   });
 
   it('shows workspace path as tooltip when workspacePath is set', () => {
-    render(<WorkspaceSidebar {...defaultProps} workspacePath="C:\Projects\my-nugget" />);
+    render(<WorkspaceSidebar {...defaultProps} workspacePath={'C:\\Projects\\my-nugget'} />);
     const folderBtn = screen.getByText('Folder');
     expect(folderBtn).toHaveAttribute('title', 'C:\\Projects\\my-nugget');
   });

@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const createMock = vi.fn();
 
-vi.mock('@anthropic-ai/sdk', () => {
+vi.mock('openai', () => {
   return {
-    default: class MockAnthropic {
-      messages = { create: createMock };
+    default: class MockOpenAI {
+      chat = { completions: { create: createMock } };
     },
   };
 });
@@ -25,7 +25,7 @@ describe('NarratorService', () => {
 
   function mockApiResponse(text: string) {
     createMock.mockResolvedValue({
-      content: [{ type: 'text', text }],
+      choices: [{ message: { content: text } }],
     });
   }
 

@@ -37,7 +37,7 @@ export const portalTemplates: Omit<Portal, 'id'>[] = [
       { id: 'write-file', name: 'Write file', kind: 'action', description: 'Write content to a file' },
       { id: 'list-files', name: 'List files', kind: 'query', description: 'List files in a directory' },
     ],
-    mcpConfig: { command: 'npx', args: ['-y', '@anthropic-ai/mcp-filesystem'] },
+    mcpConfig: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-filesystem'] },
     templateId: 'filesystem',
   },
   {

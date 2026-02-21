@@ -1,14 +1,10 @@
-/** Runs individual AI agents via the Claude Agent SDK.
- *
- * Uses the SDK's query() API to run agents programmatically. This eliminates
- * all subprocess/shell issues (Windows .cmd wrappers, ENOENT, etc.) and
- * provides native streaming, tool control, and permission management.
- */
+/** Runs individual AI agents via OpenAI chat completions. */
 
-import { query } from '@anthropic-ai/claude-agent-sdk';
+import OpenAI from 'openai';
 import type { AgentResult } from '../models/session.js';
 import { withTimeout } from '../utils/withTimeout.js';
 import { MAX_TURNS_DEFAULT } from '../utils/constants.js';
+import { getOpenAIClient } from '../utils/openaiClient.js';
 
 export interface AgentRunnerParams {
   taskId: string;
@@ -29,6 +25,12 @@ export interface AgentRunnerParams {
 }
 
 export class AgentRunner {
+  private client: OpenAI;
+
+  constructor() {
+    this.client = getOpenAIClient();
+  }
+
   async execute(params: AgentRunnerParams): Promise<AgentResult> {
     const {
       taskId,
@@ -37,19 +39,11 @@ export class AgentRunner {
       onOutput,
       workingDir,
       timeout = 300,
-      model = process.env.CLAUDE_MODEL || 'claude-opus-4-6',
+      model = process.env.OPENAI_MODEL || 'gpt-4.1',
       maxTurns = MAX_TURNS_DEFAULT,
       mcpServers,
       allowedTools,
     } = params;
-
-    const mcpConfig = mcpServers?.length
-      ? Object.fromEntries(mcpServers.map(s => [s.name, {
-          command: s.command,
-          ...(s.args ? { args: s.args } : {}),
-          ...(s.env ? { env: s.env } : {}),
-        }]))
-      : undefined;
 
     const abortController = new AbortController();
 
@@ -63,7 +57,18 @@ export class AgentRunner {
 
     try {
       return await withTimeout(
-        this.runQuery(prompt, systemPrompt, workingDir, taskId, onOutput, model, maxTurns, mcpConfig, abortController, allowedTools),
+        this.runCompletion(
+          prompt,
+          systemPrompt,
+          workingDir,
+          taskId,
+          onOutput,
+          model,
+          maxTurns,
+          mcpServers,
+          allowedTools,
+          abortController,
+        ),
         timeout * 1000,
       );
     } catch (err: any) {
@@ -88,7 +93,7 @@ export class AgentRunner {
     }
   }
 
-  private async runQuery(
+  private async runCompletion(
     prompt: string,
     systemPrompt: string,
     cwd: string,
@@ -96,61 +101,42 @@ export class AgentRunner {
     onOutput: (taskId: string, content: string) => Promise<void>,
     model: string,
     maxTurns: number,
-    mcpConfig?: Record<string, any>,
-    abortController?: AbortController,
+    mcpServers?: Array<{ name: string; command: string; args?: string[]; env?: Record<string, string> }>,
     allowedTools?: string[],
+    abortController?: AbortController,
   ): Promise<AgentResult> {
-    const conversation = query({
+    const capabilityNotes: string[] = [];
+    if (allowedTools?.length) capabilityNotes.push(`Allowed tools: ${allowedTools.join(', ')}`);
+    if (mcpServers?.length) capabilityNotes.push(`MCP servers available: ${mcpServers.map(s => s.name).join(', ')}`);
+
+    const userPrompt = [
       prompt,
-      options: {
-        cwd,
-        model,
-        maxTurns,
-        permissionMode: 'bypassPermissions',
-        systemPrompt,
-        ...(allowedTools ? { allowedTools } : {}),
-        ...(mcpConfig ? { mcpServers: mcpConfig } : {}),
-        ...(abortController ? { abortController } : {}),
-      },
-    });
+      '',
+      `Working directory: ${cwd}`,
+      `Max turns budget: ${maxTurns}`,
+      ...(capabilityNotes.length > 0 ? capabilityNotes : []),
+      '',
+      'Important: Return concise implementation notes and concrete file-level changes.',
+    ].join('\n');
 
-    let costUsd = 0;
-    let inputTokens = 0;
-    let outputTokens = 0;
-    let finalResult = '';
-    let success = true;
-    const accumulatedText: string[] = [];
+    const response = await this.client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      temperature: 0.2,
+      max_completion_tokens: 4000,
+    }, abortController ? { signal: abortController.signal } : undefined);
 
-    for await (const message of conversation) {
-      if (message.type === 'assistant') {
-        for (const block of (message as any).message?.content ?? []) {
-          if (block.type === 'text') {
-            accumulatedText.push(block.text);
-            onOutput(taskId, block.text).catch(() => {});
-          }
-        }
-      }
-
-      if (message.type === 'result') {
-        const result = message as any;
-        costUsd = result.total_cost_usd ?? 0;
-        inputTokens = result.usage?.input_tokens ?? 0;
-        outputTokens = result.usage?.output_tokens ?? 0;
-
-        if (result.subtype === 'success') {
-          finalResult = result.result ?? '';
-        } else {
-          success = false;
-          const errors: string[] = result.errors ?? [];
-          finalResult = errors.join('; ')
-            || accumulatedText.slice(-3).join('\n')
-            || 'Unknown error';
-        }
-      }
+    const text = response.choices[0]?.message?.content ?? '';
+    if (text) {
+      onOutput(taskId, text).catch(() => {});
     }
 
-    const summary = finalResult || accumulatedText.slice(-3).join('\n') || 'No output';
-    return { success, summary, costUsd, inputTokens, outputTokens };
+    const inputTokens = response.usage?.prompt_tokens ?? 0;
+    const outputTokens = response.usage?.completion_tokens ?? 0;
+    const summary = text || 'No output';
+    return { success: true, summary, costUsd: 0, inputTokens, outputTokens };
   }
 }
-

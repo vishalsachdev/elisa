@@ -1,11 +1,11 @@
 # Backend Module
 
-Express 5 + TypeScript server. Orchestrates AI agent teams via the Claude Agent SDK. Streams results to frontend over WebSocket.
+Express 5 + TypeScript server. Orchestrates AI agent teams via the OpenAI chat completions API. Streams results to frontend over WebSocket.
 
 ## Stack
 
 - Express 5, TypeScript 5.9, Node.js (ES modules)
-- ws 8 (WebSocket), simple-git 3, serialport 12, @anthropic-ai/sdk, @anthropic-ai/claude-agent-sdk
+- ws 8 (WebSocket), simple-git 3, serialport 12, openai
 - Zod 4 (NuggetSpec validation)
 - archiver 7 (zip streaming for nugget export)
 - Vitest (tests)
@@ -31,14 +31,14 @@ src/
       executePhase.ts    Task execution loop (parallel, git mutex, context chain)
       testPhase.ts       Test runner invocation, result reporting
       deployPhase.ts     Hardware flash, portal deployment
-    agentRunner.ts       Runs agents via SDK query() API, streams output
-    metaPlanner.ts       Calls Claude API to decompose NuggetSpec into task DAG
+    agentRunner.ts       Runs agents via OpenAI chat completions API
+    metaPlanner.ts       Calls OpenAI API to decompose NuggetSpec into task DAG
     gitService.ts        Git init, commit per task, diff tracking
     hardwareService.ts   ESP32 detect, compile, flash, serial monitor
     testRunner.ts        Runs pytest for Python, Node test runner for JS. Parses results + coverage.
     skillRunner.ts       Executes SkillPlans step-by-step (ask_user, branch, run_agent, invoke_skill)
     teachingEngine.ts    Generates contextual learning moments (curriculum + API fallback)
-    narratorService.ts   Generates narrator messages for build events (Claude Haiku)
+    narratorService.ts   Generates narrator messages for build events (OpenAI GPT-4.1 mini)
     permissionPolicy.ts  Auto-resolves agent permission requests based on policy rules
   prompts/
     metaPlanner.ts       System prompt for task decomposition
@@ -57,9 +57,10 @@ src/
     withTimeout.ts       Generic promise timeout wrapper with AbortSignal support
     constants.ts         Named constants for timeouts, limits, intervals, default model
     pathValidator.ts     Workspace path validation (blocklist for system/sensitive dirs)
-    safeEnv.ts           Sanitized process.env copy (strips ANTHROPIC_API_KEY)
+    safeEnv.ts           Sanitized process.env copy (strips OPENAI_API_KEY)
     findFreePort.ts      Scans for available TCP port from a starting port
-    anthropicClient.ts   Singleton factory for the Anthropic SDK client
+    openaiClient.ts      Singleton factory for the OpenAI SDK client
+    anthropicClient.ts   Legacy alias for backward compatibility (OpenAI-backed)
 ```
 
 ## API Surface
@@ -92,14 +93,14 @@ src/
 
 - **Session state**: In-memory Maps with optional JSON persistence for checkpoint/recovery. Auto-cleanup after 5-min grace period.
 - **NuggetSpec validation**: Zod schema validates at `/api/sessions/:id/start` (string caps, array limits, portal command allowlist).
-- **SDK query per task**: Each agent task calls `query()` from `@anthropic-ai/claude-agent-sdk` with `permissionMode: 'bypassPermissions'`. Default `maxTurns=25` (`MAX_TURNS_DEFAULT`). On retry, grants 10 additional turns per attempt (`MAX_TURNS_RETRY_INCREMENT`), so retries progress: 25 → 35 → 45.
+- **OpenAI request per task**: Each agent task calls `chat.completions.create()` with the task/system prompts. Default `maxTurns=25` (`MAX_TURNS_DEFAULT`). On retry, grants 10 additional turns per attempt (`MAX_TURNS_RETRY_INCREMENT`), so retries progress: 25 → 35 → 45.
 - **Stale metadata cleanup**: On each build, `setupWorkspace()` removes `.elisa/{comms,context,status}` from previous sessions before recreating them. Preserves `.elisa/logs/`, source files, and `.git/`.
 - **Structural digest injection**: Agent task prompts include function/class signatures extracted from workspace source files (via `ContextManager.buildStructuralDigest()`), allowing agents to orient without reading each file.
 - **Retry context**: Failed tasks are retried (up to 2 retries) with a "Retry Attempt" header prepended to the prompt, instructing agents to skip orientation and go straight to implementation.
 - **Streaming-parallel execution**: Up to 3 independent tasks run concurrently via Promise.race pool. New tasks schedule as soon as any completes. Git commits serialized via mutex.
 - **Token budget**: Default 500k token limit per session. Warning event at 80%. Graceful stop when exceeded. Cost tracking per agent.
 - **Context chain**: After each task, summary + structural digest written to `.elisa/context/nugget_context.md`.
-- **Cancellation**: `Orchestrator.cancel()` via AbortController; signal propagated to Agent SDK `query()` calls. Session state set to `done` on error.
+- **Cancellation**: `Orchestrator.cancel()` via AbortController; signal propagated to OpenAI requests. Session state set to `done` on error.
 - **Content safety**: All agent prompts enforce age-appropriate output (8-14). Placeholder values sanitized before interpolation (`sanitizePlaceholder()`).
 - **Flash mutex**: `HardwareService.flash()` serializes concurrent calls via Promise-chain mutex.
 - **Graceful shutdown**: SIGTERM/SIGINT handlers cancel orchestrators, close WS server, 10s force-exit. `SessionStore.onCleanup` invokes `ConnectionManager.cleanup()` for WS teardown.
@@ -117,6 +118,6 @@ src/
 
 - `PORT`: Backend port (default 8000), or Electron picks a free port
 - `CORS_ORIGIN`: Override CORS origin in dev mode (default `http://localhost:5173`)
-- `CLAUDE_MODEL`: Override model for agents and teaching engine (default `claude-opus-4-6`)
-- `ANTHROPIC_API_KEY`: Required for Claude API/SDK access
-- Claude models: configurable via `CLAUDE_MODEL` env var (default claude-opus-4-6)
+- `OPENAI_MODEL`: Override model for agents and teaching engine (default `gpt-4.1`)
+- `OPENAI_API_KEY`: Required for OpenAI API/SDK access
+- OpenAI models: configurable via `OPENAI_MODEL` env var (default `gpt-4.1`)

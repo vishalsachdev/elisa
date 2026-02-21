@@ -1,9 +1,9 @@
 /** Translates raw agent events into kid-friendly narrator messages via Haiku. */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { NARRATOR_SYSTEM_PROMPT, narratorUserPrompt } from '../prompts/narratorAgent.js';
 import { NARRATOR_TIMEOUT_MS, RATE_LIMIT_DELAY_MS } from '../utils/constants.js';
-import { getAnthropicClient } from '../utils/anthropicClient.js';
+import { getOpenAIClient } from '../utils/openaiClient.js';
 
 export interface NarratorMessage {
   text: string;
@@ -60,7 +60,7 @@ const FALLBACKS: Record<string, FallbackEntry[]> = {
 };
 
 export class NarratorService {
-  private client: Anthropic | null = null;
+  private client: OpenAI | null = null;
   private history: string[] = [];
   private model: string;
   private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -71,7 +71,7 @@ export class NarratorService {
   private fallbackIndex = 0;
 
   constructor(model?: string) {
-    this.model = model ?? process.env.NARRATOR_MODEL ?? 'claude-haiku-4-5-20241022';
+    this.model = model ?? process.env.NARRATOR_MODEL ?? process.env.OPENAI_MODEL ?? 'gpt-4.1-mini';
   }
 
   isTranslatable(eventType: string): boolean {
@@ -95,25 +95,25 @@ export class NarratorService {
     let msg: NarratorMessage;
     try {
       if (!this.client) {
-        this.client = getAnthropicClient();
+        this.client = getOpenAIClient();
       }
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), NARRATOR_TIMEOUT_MS);
 
-      const response = await this.client.messages.create(
-        {
-          model: this.model,
-          max_tokens: 150,
-          system: NARRATOR_SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: prompt }],
-        },
-        { signal: controller.signal },
-      );
+      const response = await this.client.chat.completions.create({
+        model: this.model,
+        max_completion_tokens: 150,
+        temperature: 0.2,
+        messages: [
+          { role: 'system', content: NARRATOR_SYSTEM_PROMPT },
+          { role: 'user', content: prompt },
+        ],
+      }, { signal: controller.signal });
 
       clearTimeout(timeout);
 
-      const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const text = response.choices[0]?.message?.content ?? '';
       msg = this.parseResponse(text);
     } catch {
       // Timeout or API error -- use fallback

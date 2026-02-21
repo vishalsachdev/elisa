@@ -6,8 +6,8 @@
 |-------------|---------|-------|
 | Node.js | 20+ | Required |
 | npm | 10+ | Comes with Node.js |
-| `ANTHROPIC_API_KEY` | -- | Environment variable. Get one at [console.anthropic.com](https://console.anthropic.com) |
-| Claude Agent SDK | -- | Installed automatically via `npm install` in the backend. |
+| `OPENAI_API_KEY` | -- | Environment variable. Get one at [platform.openai.com](https://platform.openai.com) |
+| OpenAI SDK (`openai` npm package) | -- | Installed automatically via `npm install` in the backend. |
 | Python + pytest | 3.10+ | Optional. Only needed if builds include test tasks. |
 | ESP32 + mpremote | -- | Optional. Only needed for hardware deployment. `pip install mpremote` |
 
@@ -46,7 +46,7 @@ Skills and Rules have separate sidebar buttons for quick access.
 
 ## Troubleshooting
 
-**Backend won't start** -- Confirm `ANTHROPIC_API_KEY` is set in your environment. The server needs it for the meta-planner and teaching engine.
+**Backend won't start** -- Confirm `OPENAI_API_KEY` is set in your environment. The server needs it for planning, teaching, and narration.
 
 **WebSocket disconnects** -- The frontend auto-reconnects. If the backend crashed, restart it and create a new session.
 

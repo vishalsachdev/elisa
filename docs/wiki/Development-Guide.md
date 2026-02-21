@@ -5,7 +5,7 @@
 - Node.js 20+
 - npm 10+
 - Python 3.10+ (optional, for test runner)
-- `ANTHROPIC_API_KEY` environment variable
+- `OPENAI_API_KEY` environment variable
 
 ## Setup
 
@@ -52,9 +52,9 @@ npm run dev:electron     # Launches backend, frontend, and Electron window
 
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
-| `ANTHROPIC_API_KEY` | Yes | — | Claude API/SDK access |
-| `CLAUDE_MODEL` | No | `claude-opus-4-6` | Override agent model |
-| `NARRATOR_MODEL` | No | `claude-haiku-4-5-20241022` | Override narrator model |
+| `OPENAI_API_KEY` | Yes | — | OpenAI API/SDK access |
+| `OPENAI_MODEL` | No | `gpt-4.1` | Override agent model |
+| `NARRATOR_MODEL` | No | `gpt-4.1-mini` | Override narrator model |
 | `CORS_ORIGIN` | No | `http://localhost:5173` | Override CORS origin in dev |
 | `PORT` | No | `8000` | Backend port |
 
@@ -122,7 +122,7 @@ Every bug fix **must** include tests that:
 ## Conventions
 
 - No database. Session state is in-memory with optional JSON persistence.
-- Each agent task runs via the Claude Agent SDK's `query()` API.
+- Each agent task runs via OpenAI chat completions.
 - Frontend communicates via REST (commands) + WebSocket (events).
 - Blockly workspace → NuggetSpec JSON (Zod-validated) → backend orchestration pipeline.
 - Up to 3 tasks execute concurrently when DAG dependencies allow.
