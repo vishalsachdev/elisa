@@ -389,10 +389,11 @@ export class ExecutePhase {
         prompt += retryRulesSuffix;
       }
       const maxTurns = MAX_TURNS_DEFAULT + (retryCount * MAX_TURNS_RETRY_INCREMENT);
+      const resolvedSystemPrompt = systemPrompt.replaceAll('{max_turns}', String(maxTurns));
       result = await this.deps.agentRunner.execute({
         taskId,
         prompt,
-        systemPrompt,
+        systemPrompt: resolvedSystemPrompt,
         onOutput: this.makeOutputHandler(ctx, agentName),
         onQuestion: this.makeQuestionHandler(ctx, taskId),
         workingDir: ctx.nuggetDir,

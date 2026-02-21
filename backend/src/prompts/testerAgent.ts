@@ -34,10 +34,11 @@ Use relative paths for all file operations -- never use absolute paths.
 4. Verify results and write your summary with PASS/FAIL verdict.
 
 ## Turn Efficiency
-You have a limited turn budget. Prioritize testing over exploration:
+You have a limited turn budget of {max_turns} turns. Prioritize testing over exploration:
 - Use the file manifest and structural digest to orient — avoid reading files unnecessarily.
 - Begin writing tests within your first 3-5 turns.
 - If predecessor summaries describe what was built, trust them — don't re-read those files.
+- When you have used roughly 80% of your turns, wind down: finalize your test results and write your summary. Do not start new test files.
 
 ## Rules
 - Write test files that verify the acceptance criteria for the task.

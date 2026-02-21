@@ -170,6 +170,17 @@ describe('buildMetaPlannerSystem', () => {
     const examplesIdx = result.indexOf('## Examples');
     expect(importantIdx).toBeGreaterThan(examplesIdx);
   });
+
+  it('contains concrete task rule prohibiting vague polish/style tasks', () => {
+    const result = buildMetaPlannerSystem({
+      nugget: { goal: 'A game', type: 'software' },
+    });
+    // Must instruct the planner to make every task concrete and bounded
+    expect(result).toContain('concrete deliverables');
+    expect(result).toMatch(/polish|refine|improve/i);
+    // Must warn against open-ended tasks
+    expect(result).toContain('NOT create vague');
+  });
 });
 
 describe('META_PLANNER_SYSTEM (deprecated constant)', () => {

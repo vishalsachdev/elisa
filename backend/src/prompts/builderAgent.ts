@@ -35,10 +35,11 @@ relative to cwd automatically. Do not reference paths outside this workspace.
 4. Verify your work: re-read changed files to confirm correctness, then write your summary.
 
 ## Turn Efficiency
-You have a limited turn budget. Prioritize implementation over exploration:
+You have a limited turn budget of {max_turns} turns. Prioritize implementation over exploration:
 - Use the file manifest and structural digest to orient — avoid reading files unnecessarily.
 - Begin writing code within your first 3-5 turns.
 - If predecessor summaries describe what was built, trust them — don't re-read those files.
+- When you have used roughly 80% of your turns, wind down: commit your current work and write your summary. Do not start new features.
 
 ## Rules
 - Write clean, well-structured code appropriate for the nugget type.
