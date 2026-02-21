@@ -106,6 +106,31 @@ function openSettingsWindow(onSaved?: () => void): void {
   });
 }
 
+// -- API Key Propagation (dev mode) --
+
+async function propagateApiKeyToBackend(): Promise<void> {
+  const apiKey = getApiKey();
+  if (!apiKey || !authToken) return;
+
+  // Retry a few times in case the backend hasn't started yet
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const res = await fetch(`http://localhost:${serverPort}/api/internal/config`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ apiKey }),
+      });
+      if (res.ok) return;
+    } catch {
+      // Backend not ready yet
+    }
+    await new Promise<void>(r => setTimeout(r, 2000));
+  }
+}
+
 // -- Server Start --
 
 async function startBackend(): Promise<void> {
@@ -214,10 +239,14 @@ ipcMain.handle('get-api-key-status', () => {
   return hasApiKey() ? 'set' : 'missing';
 });
 
-ipcMain.handle('set-api-key', (_event, key: string) => {
+ipcMain.handle('set-api-key', async (_event, key: string) => {
   setApiKey(key);
-  // Update the running process env so backend picks it up
+  // Update the running process env so backend picks it up (production: in-process)
   process.env.ANTHROPIC_API_KEY = key;
+  // Dev mode: propagate to separately-running backend process
+  if (!app.isPackaged) {
+    propagateApiKeyToBackend().catch(() => {});
+  }
   return true;
 });
 
@@ -255,7 +284,13 @@ app.whenReady().then(async () => {
     });
   } else {
     await startBackend();
-    createMainWindow();
+    if (!isDev) {
+      createMainWindow();
+    } else {
+      // Dev mode: propagate stored API key to separately-running backend
+      propagateApiKeyToBackend().catch(() => {});
+      createMainWindow();
+    }
   }
 });
 

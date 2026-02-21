@@ -123,7 +123,23 @@ function createApp(staticDir?: string, authToken?: string) {
   }
 
   // Health (no auth required)
-  app.get('/api/health', (_req, res) => {
+  app.get('/api/health', async (_req, res) => {
+    // Live-check API key presence (env var may be set after startup via config endpoint)
+    if (!process.env.ANTHROPIC_API_KEY) {
+      healthStatus.apiKey = 'missing';
+      healthStatus.apiKeyError = undefined;
+    } else if (healthStatus.apiKey === 'missing' || healthStatus.apiKey === 'unchecked') {
+      // Key appeared since last check — validate with Anthropic API
+      try {
+        await new Anthropic().models.list({ limit: 1 });
+        healthStatus.apiKey = 'valid';
+        healthStatus.apiKeyError = undefined;
+      } catch (err: any) {
+        healthStatus.apiKey = 'invalid';
+        healthStatus.apiKeyError = err.message ?? String(err);
+      }
+    }
+
     const ready = healthStatus.apiKey === 'valid' && healthStatus.agentSdk === 'available';
     res.json({
       status: ready ? 'ready' : 'degraded',
@@ -143,6 +159,28 @@ function createApp(staticDir?: string, authToken?: string) {
         return;
       }
       next();
+    });
+  }
+
+  // Dev-mode: accept API key from Electron process (which stores it encrypted)
+  if (!staticDir) {
+    app.post('/api/internal/config', async (req, res) => {
+      const { apiKey } = req.body;
+      if (typeof apiKey !== 'string' || apiKey.length === 0) {
+        res.status(400).json({ detail: 'apiKey is required' });
+        return;
+      }
+      process.env.ANTHROPIC_API_KEY = apiKey;
+      // Validate the newly-set key
+      try {
+        await new Anthropic().models.list({ limit: 1 });
+        healthStatus.apiKey = 'valid';
+        healthStatus.apiKeyError = undefined;
+      } catch (err: any) {
+        healthStatus.apiKey = 'invalid';
+        healthStatus.apiKeyError = err.message ?? String(err);
+      }
+      res.json({ apiKey: healthStatus.apiKey });
     });
   }
 
