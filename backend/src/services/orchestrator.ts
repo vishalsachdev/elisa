@@ -36,6 +36,7 @@ export class Orchestrator {
   private serialHandle: { close: () => void } | null = null;
   private webServerProcess: ChildProcess | null = null;
   private userWorkspace: boolean;
+  private workspaceRestartMode: 'continue' | 'clean';
 
   // Cancellation
   private abortController = new AbortController();
@@ -63,11 +64,18 @@ export class Orchestrator {
   private testPhase: TestPhase;
   private deployPhase: DeployPhase;
 
-  constructor(session: BuildSession, sendEvent: SendEvent, hardwareService?: HardwareService, workspacePath?: string) {
+  constructor(
+    session: BuildSession,
+    sendEvent: SendEvent,
+    hardwareService?: HardwareService,
+    workspacePath?: string,
+    workspaceRestartMode: 'continue' | 'clean' = 'continue',
+  ) {
     this.session = session;
     this.send = sendEvent;
     this.nuggetDir = workspacePath || path.join(os.tmpdir(), `elisa-nugget-${session.id}`);
     this.userWorkspace = !!workspacePath;
+    this.workspaceRestartMode = workspaceRestartMode;
     this.hardwareService = hardwareService ?? new HardwareService();
     this.portalService = new PortalService(this.hardwareService);
 
@@ -128,6 +136,7 @@ export class Orchestrator {
         gateResolver: this.gateResolver,
         narratorService: this.narratorService,
         permissionPolicy: this.permissionPolicy,
+        workspaceRestartMode: this.workspaceRestartMode,
       });
 
       // Initialize logger before execute so plan and execute phases get logging

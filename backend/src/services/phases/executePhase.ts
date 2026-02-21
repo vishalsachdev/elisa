@@ -70,6 +70,7 @@ export interface ExecuteDeps {
   gateResolver: { current: ((value: Record<string, any>) => void) | null };
   narratorService?: NarratorService;
   permissionPolicy?: PermissionPolicy;
+  workspaceRestartMode?: 'continue' | 'clean';
 }
 
 export class ExecutePhase {
@@ -301,6 +302,13 @@ export class ExecutePhase {
       predecessors: predecessorSummaries,
       style: ctx.session.spec?.style ?? null,
     });
+
+    if (this.deps.workspaceRestartMode === 'continue') {
+      userPrompt +=
+        '\n\n## Workspace Continuation Mode\n' +
+        'This workspace already has prior implementation. Start by checking existing files in src/ and tests/.\n' +
+        'Prefer incremental edits over wholesale rewrites, and preserve any working behavior unless the task explicitly changes it.';
+    }
 
     // Inject agent-category skills and always-on rules into user prompt
     const agentSkills = (specData.skills ?? []).filter(

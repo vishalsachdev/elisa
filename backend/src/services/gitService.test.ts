@@ -1,4 +1,5 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import fs from 'node:fs';
 
 const { writeFileSyncMock } = vi.hoisted(() => ({
   writeFileSyncMock: vi.fn(),
@@ -43,15 +44,17 @@ describe('GitService', () => {
   let git: GitService;
 
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
     git = new GitService();
   });
 
   describe('initRepo', () => {
     it('initializes git repo and creates .gitignore + README', async () => {
+      const mockGit = getMockGit();
+      mockGit.checkIsRepo.mockResolvedValueOnce(false);
       await git.initRepo('/fake/path', 'My Cool Project');
 
-      const mockGit = getMockGit();
       expect(mockGit.init).toHaveBeenCalled();
       expect(mockGit.addConfig).toHaveBeenCalledWith('user.name', 'Elisa');
       expect(mockGit.addConfig).toHaveBeenCalledWith('user.email', 'elisa@local');
@@ -69,6 +72,18 @@ describe('GitService', () => {
 
       expect(mockGit.add).toHaveBeenCalledWith(['README.md', '.gitignore']);
       expect(mockGit.commit).toHaveBeenCalledWith('Nugget started!');
+    });
+
+    it('does not overwrite existing files in an existing repo', async () => {
+      const mockGit = getMockGit();
+      mockGit.checkIsRepo.mockResolvedValueOnce(true);
+      vi.spyOn(fs, 'existsSync')
+        .mockImplementation((p: any) => String(p).includes('README.md') || String(p).includes('.gitignore'));
+
+      await git.initRepo('/fake/path', 'My Cool Project');
+
+      expect(mockGit.init).not.toHaveBeenCalled();
+      expect(writeFileSyncMock).not.toHaveBeenCalled();
     });
   });
 

@@ -8,24 +8,39 @@ import type { CommitInfo } from '../models/session.js';
 export class GitService {
   async initRepo(repoPath: string, nuggetGoal: string): Promise<void> {
     const git = simpleGit(repoPath);
-    await git.init();
-    await git.addConfig('user.name', 'Elisa');
-    await git.addConfig('user.email', 'elisa@local');
+    let isRepo = false;
+    try {
+      isRepo = await git.checkIsRepo();
+    } catch {
+      isRepo = false;
+    }
+    if (!isRepo) {
+      await git.init();
+      await git.addConfig('user.name', 'Elisa');
+      await git.addConfig('user.email', 'elisa@local');
+    }
 
     // Write .gitignore to prevent staging sensitive/generated files
     const gitignorePath = path.join(repoPath, '.gitignore');
-    fs.writeFileSync(gitignorePath, [
-      '.elisa/logs/',
-      '.elisa/status/',
-      '__pycache__/',
-      '',
-    ].join('\n'), 'utf-8');
+    if (!fs.existsSync(gitignorePath)) {
+      fs.writeFileSync(gitignorePath, [
+        '.elisa/logs/',
+        '.elisa/status/',
+        '__pycache__/',
+        '',
+      ].join('\n'), 'utf-8');
+    }
 
     const readmePath = path.join(repoPath, 'README.md');
-    fs.writeFileSync(readmePath, `# ${nuggetGoal}\n\nBuilt with Elisa.\n`, 'utf-8');
+    if (!fs.existsSync(readmePath)) {
+      fs.writeFileSync(readmePath, `# ${nuggetGoal}\n\nBuilt with Elisa.\n`, 'utf-8');
+    }
 
     await git.add(['README.md', '.gitignore']);
-    await git.commit('Nugget started!');
+    const status = await git.status();
+    if (status.staged.length > 0) {
+      await git.commit('Nugget started!');
+    }
   }
 
   async commit(

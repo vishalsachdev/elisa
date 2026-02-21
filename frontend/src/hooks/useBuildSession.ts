@@ -302,6 +302,7 @@ export function useBuildSession() {
     waitForWs?: () => Promise<void>,
     workspacePath?: string,
     workspaceJson?: Record<string, unknown>,
+    workspaceRestartMode: 'continue' | 'clean' = 'continue',
   ) => {
     setUiState('building');
     setEvents([]);
@@ -343,6 +344,7 @@ export function useBuildSession() {
     if (workspacePath) {
       startBody.workspace_path = workspacePath;
       startBody.workspace_json = workspaceJson ?? {};
+      startBody.workspace_restart_mode = workspaceRestartMode;
     }
 
     const startRes = await authFetch(`/api/sessions/${session_id}/start`, {

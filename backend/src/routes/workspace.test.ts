@@ -189,3 +189,84 @@ describe('POST /api/workspace/load', () => {
     expect(body.workspace).toEqual({});
   });
 });
+
+describe('POST /api/workspace/inspect', () => {
+  it('returns empty summary for a missing workspace', async () => {
+    const missing = path.join(tmpDir, 'missing');
+    const res = await fetch(`${baseUrl}/api/workspace/inspect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_path: missing }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.exists).toBe(false);
+    expect(body.is_empty).toBe(true);
+    expect(body.file_count).toBe(0);
+  });
+
+  it('detects meaningful files in src/tests and top-level files', async () => {
+    const workDir = path.join(tmpDir, 'inspect-test');
+    fs.mkdirSync(path.join(workDir, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(workDir, 'tests'), { recursive: true });
+    fs.writeFileSync(path.join(workDir, 'src', 'main.py'), 'print("ok")');
+    fs.writeFileSync(path.join(workDir, 'tests', 'test_main.py'), 'assert True');
+    fs.writeFileSync(path.join(workDir, 'README.md'), '# Readme');
+
+    const res = await fetch(`${baseUrl}/api/workspace/inspect`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_path: workDir }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.exists).toBe(true);
+    expect(body.is_empty).toBe(false);
+    expect(body.src_file_count).toBe(1);
+    expect(body.test_file_count).toBe(1);
+    expect(body.file_count).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('POST /api/workspace/reset', () => {
+  it('removes generated folders and keeps design files', async () => {
+    const workDir = path.join(tmpDir, 'reset-test');
+    fs.mkdirSync(path.join(workDir, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(workDir, 'tests'), { recursive: true });
+    fs.mkdirSync(path.join(workDir, '.elisa', 'comms'), { recursive: true });
+    fs.mkdirSync(path.join(workDir, '.elisa', 'context'), { recursive: true });
+    fs.writeFileSync(path.join(workDir, 'src', 'old.ts'), 'export {}');
+    fs.writeFileSync(path.join(workDir, 'tests', 'old.test.ts'), 'test("x",()=>{})');
+    fs.writeFileSync(path.join(workDir, 'workspace.json'), JSON.stringify({ blocks: [] }));
+
+    const res = await fetch(`${baseUrl}/api/workspace/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_path: workDir, mode: 'clean_generated' }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe('reset');
+    expect(fs.existsSync(path.join(workDir, 'src'))).toBe(false);
+    expect(fs.existsSync(path.join(workDir, 'tests'))).toBe(false);
+    expect(fs.existsSync(path.join(workDir, '.elisa', 'comms'))).toBe(false);
+    expect(fs.existsSync(path.join(workDir, 'workspace.json'))).toBe(true);
+  });
+
+  it('returns 400 for invalid reset mode', async () => {
+    const workDir = path.join(tmpDir, 'reset-mode');
+    fs.mkdirSync(workDir, { recursive: true });
+    const res = await fetch(`${baseUrl}/api/workspace/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspace_path: workDir, mode: 'unknown' }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.detail).toContain('clean_generated');
+  });
+});

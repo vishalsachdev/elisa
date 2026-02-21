@@ -14,6 +14,7 @@ import SkillsModal from './components/Skills/SkillsModal';
 import RulesModal from './components/Rules/RulesModal';
 import PortalsModal from './components/Portals/PortalsModal';
 import ExamplePickerModal from './components/shared/ExamplePickerModal';
+import WorkspaceRestartModal, { type WorkspaceInspection } from './components/shared/WorkspaceRestartModal';
 import { EXAMPLE_NUGGETS } from './lib/examples';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useBuildSession } from './hooks/useBuildSession';
@@ -106,6 +107,14 @@ export default function App() {
   const [workspacePath, setWorkspacePath] = useState<string | null>(
     () => localStorage.getItem(LS_WORKSPACE_PATH),
   );
+  const [restartInspection, setRestartInspection] = useState<WorkspaceInspection | null>(null);
+  const [restartPending, setRestartPending] = useState<{
+    spec: NuggetSpec;
+    workspacePath: string;
+    workspaceJson: Record<string, unknown> | null;
+  } | null>(null);
+  const [restartBusyMode, setRestartBusyMode] = useState<'continue' | 'clean' | null>(null);
+  const [restartError, setRestartError] = useState<string | null>(null);
   const [dirPickerOpen, setDirPickerOpen] = useState(false);
   const [bottomBarHeight, setBottomBarHeight] = useState<number>(() => {
     const saved = readLocalStorageNumber(LS_BOTTOM_BAR_HEIGHT, 180);
@@ -241,6 +250,67 @@ export default function App() {
     dirPickerResolveRef.current = null;
   };
 
+  const inspectWorkspace = async (workspaceDir: string): Promise<WorkspaceInspection | null> => {
+    try {
+      const resp = await authFetch('/api/workspace/inspect', {
+        method: 'POST',
+        body: JSON.stringify({ workspace_path: workspaceDir }),
+      });
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch {
+      return null;
+    }
+  };
+
+  const closeRestartModal = () => {
+    if (restartBusyMode) return;
+    setRestartPending(null);
+    setRestartInspection(null);
+    setRestartBusyMode(null);
+    setRestartError(null);
+  };
+
+  const runBuildWithMode = async (mode: 'continue' | 'clean') => {
+    if (!restartPending) return;
+    setRestartBusyMode(mode);
+    setRestartError(null);
+
+    try {
+      if (mode === 'clean') {
+        const resetResp = await authFetch('/api/workspace/reset', {
+          method: 'POST',
+          body: JSON.stringify({
+            workspace_path: restartPending.workspacePath,
+            mode: 'clean_generated',
+          }),
+        });
+        if (!resetResp.ok) {
+          const body = await resetResp.json().catch(() => ({ detail: resetResp.statusText }));
+          setRestartError(body.detail || 'Could not clean workspace. Try again.');
+          setRestartBusyMode(null);
+          return;
+        }
+      }
+
+      lastToastIndexRef.current = -1;
+      setCurrentToast(null);
+      await startBuild(
+        restartPending.spec,
+        waitForOpen,
+        restartPending.workspacePath,
+        restartPending.workspaceJson ?? undefined,
+        mode,
+      );
+      setRestartPending(null);
+      setRestartInspection(null);
+      setRestartBusyMode(null);
+    } catch {
+      setRestartError('Elisa could not start this build. Please try again.');
+      setRestartBusyMode(null);
+    }
+  };
+
   const handleGo = async () => {
     if (!spec) return;
 
@@ -252,9 +322,22 @@ export default function App() {
       localStorage.setItem(LS_WORKSPACE_PATH, wp);
     }
 
+    const inspection = await inspectWorkspace(wp);
+    if (inspection && !inspection.is_empty) {
+      setRestartInspection(inspection);
+      setRestartPending({
+        spec,
+        workspacePath: wp,
+        workspaceJson: workspaceJson ?? null,
+      });
+      setRestartBusyMode(null);
+      setRestartError(null);
+      return;
+    }
+
     lastToastIndexRef.current = -1;
     setCurrentToast(null);
-    await startBuild(spec, waitForOpen, wp ?? undefined, workspaceJson ?? undefined);
+    await startBuild(spec, waitForOpen, wp ?? undefined, workspaceJson ?? undefined, 'continue');
   };
 
   // -- Save Nugget --
@@ -618,6 +701,18 @@ export default function App() {
         <DirectoryPickerModal
           onSelect={handleDirPickerSelect}
           onCancel={handleDirPickerCancel}
+        />
+      )}
+
+      {/* Workspace restart decision modal */}
+      {restartPending && restartInspection && (
+        <WorkspaceRestartModal
+          inspection={restartInspection}
+          busyMode={restartBusyMode}
+          errorMessage={restartError}
+          onContinue={() => { void runBuildWithMode('continue'); }}
+          onClean={() => { void runBuildWithMode('clean'); }}
+          onCancel={closeRestartModal}
         />
       )}
 

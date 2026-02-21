@@ -72,12 +72,31 @@ export function createSessionRouter({ store, sendEvent, hardwareService }: Sessi
       return;
     }
     const spec = parseResult.data;
-    entry.session.spec = spec;
+
+    const restartModeRaw = req.body.workspace_restart_mode;
+    const workspaceRestartMode =
+      restartModeRaw === 'continue' || restartModeRaw === 'clean'
+        ? restartModeRaw
+        : 'continue';
+
+    // Clone spec so runtime-only restart hints don't leak into persisted design files.
+    const runtimeSpec = JSON.parse(JSON.stringify(spec)) as typeof spec;
+    if (workspaceRestartMode === 'continue') {
+      const workflow = (runtimeSpec.workflow ??= {});
+      const hints = Array.isArray(workflow.flow_hints) ? workflow.flow_hints : [];
+      hints.push({
+        type: 'workspace_restart_mode',
+        mode: 'continue',
+        note: 'Existing workspace files may contain partial implementation. Plan incremental tasks that extend or refine existing code.',
+      });
+      workflow.flow_hints = hints;
+    }
+    entry.session.spec = runtimeSpec;
 
     // Pre-execute composite skills
-    if (spec.skills?.length) {
+    if (runtimeSpec.skills?.length) {
       const agentRunner = new AgentRunner();
-      const skills = spec.skills as unknown as SkillSpec[];
+      const skills = runtimeSpec.skills as unknown as SkillSpec[];
       for (const skill of skills) {
         if (skill.category === 'composite' && skill.workspace) {
           try {
@@ -142,12 +161,13 @@ export function createSessionRouter({ store, sendEvent, hardwareService }: Sessi
       (evt) => sendEvent(req.params.id, evt),
       hardwareService,
       workspacePath,
+      workspaceRestartMode,
     );
     entry.orchestrator = orchestrator;
 
     let cancelled = false;
     const sessionId = req.params.id;
-    const promise = orchestrator.run(spec);
+    const promise = orchestrator.run(runtimeSpec);
     promise
       .catch((err) => {
         if (!cancelled) console.error('Orchestrator run error:', err);

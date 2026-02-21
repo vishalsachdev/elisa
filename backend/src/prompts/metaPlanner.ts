@@ -92,6 +92,7 @@ All generated content (code, comments, text, file names) must be appropriate for
 - If \`workflow.human_gates\` is non-empty, insert a review checkpoint task after the main build tasks complete. The review task should have all build tasks as dependencies.
 - If \`workflow.flow_hints\` contains sequential hints, order those tasks accordingly in dependencies.
 - If \`workflow.flow_hints\` contains parallel hints, those tasks should share the same dependencies (can run concurrently).
+- If \`workflow.flow_hints\` includes \`{"type":"workspace_restart_mode","mode":"continue"}\`, assume files may already exist in \`src/\` and \`tests/\`. Prefer incremental/refactor tasks over re-scaffolding tasks.
 - If \`workflow.iteration_conditions\` is non-empty, note the conditions in the final review/testing task descriptions.
 
 ## Skills and Rules
