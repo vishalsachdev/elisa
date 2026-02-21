@@ -9,6 +9,7 @@ import * as builderAgent from '../../prompts/builderAgent.js';
 import * as testerAgent from '../../prompts/testerAgent.js';
 import * as reviewerAgent from '../../prompts/reviewerAgent.js';
 import { AgentRunner } from '../agentRunner.js';
+import { CONTEXT_WINDOW_EXCEEDED_MARKER } from '../agentRunner.js';
 import { GitService } from '../gitService.js';
 import { TeachingEngine } from '../teachingEngine.js';
 import { PortalService } from '../portalService.js';
@@ -319,26 +320,35 @@ export class ExecutePhase {
       }
     }
 
-    // Append file manifest
+    const promptBody = userPrompt;
     const fileManifest = ContextManager.buildFileManifest(ctx.nuggetDir);
-    if (fileManifest) {
-      userPrompt += '\n\n## FILES ALREADY IN WORKSPACE\n' +
-        'These files exist on disk right now. Do NOT recreate them -- use Edit to modify existing files.\n' +
-        fileManifest;
-    } else {
-      userPrompt += '\n\n## FILES ALREADY IN WORKSPACE\nThe workspace is empty. You are the first agent.';
-    }
-
-    // Inject structural digest so agents see function/class signatures without reading files
     const digest = ContextManager.buildStructuralDigest(ctx.nuggetDir);
-    if (digest) {
-      userPrompt += '\n\n' + digest;
-    }
+    const buildPrompt = (compactMode: boolean): string => {
+      if (compactMode) {
+        return promptBody +
+          '\n\n## COMPACT CONTEXT MODE\n' +
+          'A prior attempt exceeded context limits. Keep changes minimal and read only files you must edit.';
+      }
+
+      let fullPrompt = promptBody;
+      if (fileManifest) {
+        fullPrompt += '\n\n## FILES ALREADY IN WORKSPACE\n' +
+          'These files exist on disk right now. Do NOT recreate them -- use Edit to modify existing files.\n' +
+          fileManifest;
+      } else {
+        fullPrompt += '\n\n## FILES ALREADY IN WORKSPACE\nThe workspace is empty. You are the first agent.';
+      }
+      if (digest) {
+        fullPrompt += '\n\n' + digest;
+      }
+      return fullPrompt;
+    };
 
     let retryCount = 0;
     const maxRetries = 2;
     let success = false;
     let result: any = null;
+    let lastFailureSummary = '';
     const taskStartTime = Date.now();
     const logTaskDone = ctx.logger?.taskStart(taskId, task.name ?? taskId, agentName);
 
@@ -374,13 +384,16 @@ export class ExecutePhase {
 
     while (!success && retryCount <= maxRetries) {
       const mcpServers = this.deps.portalService.getMcpServers();
-      let prompt = userPrompt;
+      const useCompactPrompt = retryCount > 0 && this.isContextWindowFailure(lastFailureSummary);
+      let prompt = buildPrompt(useCompactPrompt);
       if (retryCount > 0) {
         const retryContext = [
           `## Retry Attempt ${retryCount}`,
           'A previous attempt at this task did not complete successfully.',
           'The workspace already contains partial work from that attempt.',
-          'Skip orientation — do NOT re-read files you can see in the manifest and digest.',
+          useCompactPrompt
+            ? 'Previous failure exceeded context length. Skip non-essential context and act directly.'
+            : 'Skip orientation — do NOT re-read files you can see in the manifest and digest.',
           'Go straight to implementation.',
         ].join('\n');
         prompt = retryContext + '\n\n' + prompt;
@@ -413,6 +426,7 @@ export class ExecutePhase {
         success = true;
         this.taskSummaries[taskId] = result.summary;
       } else {
+        lastFailureSummary = result?.summary ?? '';
         retryCount++;
         if (retryCount <= maxRetries) {
           await ctx.send({
@@ -604,6 +618,12 @@ export class ExecutePhase {
       this.deps.questionResolvers.delete(taskId);
       return false;
     }
+  }
+
+  private isContextWindowFailure(summary: string): boolean {
+    if (!summary) return false;
+    if (summary.startsWith(CONTEXT_WINDOW_EXCEEDED_MARKER)) return true;
+    return /context length|context window|too many tokens|max(?:imum)? context|prompt (?:is )?too long|context_window_exceeded/i.test(summary);
   }
 
   // -- Human Gate --

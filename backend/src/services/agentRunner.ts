@@ -6,6 +6,19 @@ import { withTimeout } from '../utils/withTimeout.js';
 import { MAX_TURNS_DEFAULT } from '../utils/constants.js';
 import { getOpenAIClient } from '../utils/openaiClient.js';
 
+export const CONTEXT_WINDOW_EXCEEDED_MARKER = 'CONTEXT_WINDOW_EXCEEDED:';
+
+function isContextWindowExceededError(err: any): boolean {
+  const code = String(err?.code ?? '').toLowerCase();
+  const type = String(err?.type ?? '').toLowerCase();
+  const message = String(err?.message ?? '').toLowerCase();
+  return (
+    code === 'context_length_exceeded' ||
+    type === 'context_length_exceeded' ||
+    /context length|context window|too many tokens|max(?:imum)? context|prompt (?:is )?too long|context_window_exceeded/.test(message)
+  );
+}
+
 export interface AgentRunnerParams {
   taskId: string;
   prompt: string;
@@ -39,7 +52,7 @@ export class AgentRunner {
       onOutput,
       workingDir,
       timeout = 300,
-      model = process.env.OPENAI_MODEL || 'gpt-4.1',
+      model = process.env.OPENAI_MODEL || 'gpt-5.2',
       maxTurns = MAX_TURNS_DEFAULT,
       mcpServers,
       allowedTools,
@@ -78,6 +91,15 @@ export class AgentRunner {
         return {
           success: false,
           summary: `Agent timed out after ${timeout} seconds`,
+          costUsd: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        };
+      }
+      if (isContextWindowExceededError(err)) {
+        return {
+          success: false,
+          summary: `${CONTEXT_WINDOW_EXCEEDED_MARKER} Prompt exceeded model context window`,
           costUsd: 0,
           inputTokens: 0,
           outputTokens: 0,

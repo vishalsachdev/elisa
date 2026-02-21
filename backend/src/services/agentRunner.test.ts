@@ -34,7 +34,7 @@ describe('AgentRunner', () => {
 
     expect(mockCreate).toHaveBeenCalledOnce();
     const req = mockCreate.mock.calls[0][0];
-    expect(req.model).toBe('gpt-4.1');
+    expect(req.model).toBe('gpt-5.2');
     expect(req.messages[0].role).toBe('system');
     expect(req.messages[0].content).toBe('you are a bot');
     expect(req.messages[1].role).toBe('user');
@@ -115,5 +115,23 @@ describe('AgentRunner', () => {
 
     expect(result.success).toBe(false);
     expect(result.summary).toContain('OpenAI connection failed');
+  });
+
+  it('maps context-length errors to a stable marker summary', async () => {
+    const err = new Error('This model\'s maximum context length is exceeded');
+    (err as any).code = 'context_length_exceeded';
+    mockCreate.mockRejectedValue(err);
+
+    const runner = new AgentRunner();
+    const result = await runner.execute({
+      taskId: 'test-1',
+      prompt: 'hello',
+      systemPrompt: 'you are a bot',
+      onOutput: vi.fn().mockResolvedValue(undefined),
+      workingDir: '/tmp/test',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.summary).toContain('CONTEXT_WINDOW_EXCEEDED');
   });
 });

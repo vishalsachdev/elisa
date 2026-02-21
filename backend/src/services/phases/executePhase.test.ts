@@ -976,6 +976,36 @@ describe('token budget enforcement during concurrent execution (#80)', () => {
 });
 
 // ============================================================
+// Context-window retry behavior
+// ============================================================
+
+describe('context-window retry behavior', () => {
+  it('uses compact prompt mode after context-window failure', async () => {
+    const executeMock = vi.fn()
+      .mockResolvedValueOnce({
+        success: false,
+        summary: 'CONTEXT_WINDOW_EXCEEDED: Prompt exceeded model context window',
+        inputTokens: 0,
+        outputTokens: 0,
+        costUsd: 0,
+      })
+      .mockResolvedValueOnce(makeSuccessResult());
+
+    const task = makeTask('task-1', 'Build UI', 'Builder Bot');
+    const agent = makeAgent('Builder Bot');
+    const deps = makeDeps(executeMock, { tasks: [task], agents: [agent] });
+    const ctx = makeCtx();
+    const phase = new ExecutePhase(deps);
+
+    await phase.execute(ctx);
+
+    expect(executeMock).toHaveBeenCalledTimes(2);
+    const secondCallPrompt = executeMock.mock.calls[1][0].prompt as string;
+    expect(secondCallPrompt).toContain('COMPACT CONTEXT MODE');
+  });
+});
+
+// ============================================================
 // sanitizePlaceholder (#71)
 // ============================================================
 
