@@ -442,10 +442,14 @@ export default function App() {
             onSkills={() => setSkillsModalOpen(true)}
             onRules={() => setRulesModalOpen(true)}
             onPortals={() => setPortalsModalOpen(true)}
-            onExamples={() => setExamplePickerOpen(true)}
+            onExamples={() => {
+              if (uiState !== 'design') return;
+              setExamplePickerOpen(true);
+            }}
             onHelp={() => setHelpOpen(true)}
             onFolder={handleOpenFolder}
             saveDisabled={!workspaceJson}
+            examplesDisabled={uiState !== 'design'}
             workspacePath={workspacePath}
           />
           <div className="flex-1 relative">

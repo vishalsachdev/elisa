@@ -61,6 +61,26 @@ describe('ExamplePickerModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('calls onClose when close button is clicked', () => {
+    const onClose = vi.fn();
+    render(
+      <ExamplePickerModal examples={examples} onSelect={vi.fn()} onClose={onClose} />,
+    );
+
+    fireEvent.click(screen.getByLabelText('Close examples'));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('calls onClose when Escape is pressed', () => {
+    const onClose = vi.fn();
+    render(
+      <ExamplePickerModal examples={examples} onSelect={vi.fn()} onClose={onClose} />,
+    );
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('shows category badges', () => {
     render(
       <ExamplePickerModal examples={examples} onSelect={vi.fn()} onClose={vi.fn()} />,

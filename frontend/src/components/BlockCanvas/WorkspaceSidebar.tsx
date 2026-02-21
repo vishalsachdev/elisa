@@ -8,6 +8,7 @@ interface WorkspaceSidebarProps {
   onHelp: () => void;
   onFolder?: () => void;
   saveDisabled: boolean;
+  examplesDisabled?: boolean;
   workspacePath?: string | null;
 }
 
@@ -23,7 +24,7 @@ const sidebarItems: Array<{ key: string; label: string; prop: keyof Pick<Workspa
 ];
 
 export default function WorkspaceSidebar({
-  onOpen, onSave, onSkills, onRules, onPortals, onExamples, onHelp, onFolder, saveDisabled, workspacePath,
+  onOpen, onSave, onSkills, onRules, onPortals, onExamples, onHelp, onFolder, saveDisabled, examplesDisabled = false, workspacePath,
 }: WorkspaceSidebarProps) {
   const handlers: Record<string, (() => void) | undefined> = {
     onOpen, onSave, onSkills, onRules, onPortals, onExamples, onHelp, onFolder,
@@ -32,7 +33,10 @@ export default function WorkspaceSidebar({
   return (
     <div className="flex flex-col gap-1.5 py-3 px-1.5 border-r border-border-subtle bg-atelier-surface/60">
       {sidebarItems.map(item => {
-        const disabled = (item.key === 'save' && saveDisabled) || (item.key === 'folder' && !onFolder);
+        const disabled =
+          (item.key === 'save' && saveDisabled)
+          || (item.key === 'folder' && !onFolder)
+          || (item.key === 'examples' && examplesDisabled);
         const handler = handlers[item.prop];
         return (
           <button
