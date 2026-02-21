@@ -139,7 +139,7 @@ All events flow server to client as JSON with a `type` discriminator field.
 
 ## Narrator System
 
-The narrator translates raw build events into kid-friendly commentary via OpenAI GPT-4.1 mini.
+The narrator translates raw build events into kid-friendly commentary via OpenAI GPT-5.2.
 
 ### Trigger Events
 
@@ -159,7 +159,7 @@ Narrator messages are triggered by these build events: `task_started`, `task_com
 
 ### Configuration
 
-- `NARRATOR_MODEL` env var overrides the model (default: `gpt-4.1-mini`)
+- `NARRATOR_MODEL` env var overrides the model (default: `gpt-5.2`)
 
 ### Debounce
 

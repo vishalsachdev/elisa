@@ -38,7 +38,7 @@ src/
     testRunner.ts        Runs pytest for Python, Node test runner for JS. Parses results + coverage.
     skillRunner.ts       Executes SkillPlans step-by-step (ask_user, branch, run_agent, invoke_skill)
     teachingEngine.ts    Generates contextual learning moments (curriculum + API fallback)
-    narratorService.ts   Generates narrator messages for build events (OpenAI GPT-4.1 mini)
+    narratorService.ts   Generates narrator messages for build events (OpenAI GPT-5.2)
     permissionPolicy.ts  Auto-resolves agent permission requests based on policy rules
   prompts/
     metaPlanner.ts       System prompt for task decomposition
@@ -118,6 +118,6 @@ src/
 
 - `PORT`: Backend port (default 8000), or Electron picks a free port
 - `CORS_ORIGIN`: Override CORS origin in dev mode (default `http://localhost:5173`)
-- `OPENAI_MODEL`: Override model for agents and teaching engine (default `gpt-4.1`)
+- `OPENAI_MODEL`: Override model for agents and teaching engine (default `gpt-5.2`)
 - `OPENAI_API_KEY`: Required for OpenAI API/SDK access
-- OpenAI models: configurable via `OPENAI_MODEL` env var (default `gpt-4.1`)
+- OpenAI models: configurable via `OPENAI_MODEL` env var (default `gpt-5.2`)

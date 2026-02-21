@@ -35,18 +35,18 @@ src/
     gitService.ts      Per-session git repo init + commits
     testRunner.ts      pytest execution + coverage parsing
     hardwareService.ts ESP32 detect/compile/flash/serial monitor
-    teachingEngine.ts  Concept curriculum, dedup, OpenAI GPT-4.1 mini fallback
+    teachingEngine.ts  Concept curriculum, dedup, OpenAI GPT-5.2 fallback
 ```
 
 ## Service Architecture
 
 **Build pipeline** (managed by Orchestrator):
 
-1. `MetaPlanner.plan(spec)` -- Calls OpenAI (model: `gpt-4.1`) to decompose ProjectSpec into a task DAG with dependencies. Validates for cycles. Retries on parse failure.
+1. `MetaPlanner.plan(spec)` -- Calls OpenAI (model: `gpt-5.2`) to decompose ProjectSpec into a task DAG with dependencies. Validates for cycles. Retries on parse failure.
 2. **Task execution loop** -- For each ready task:
-   - `AgentRunner.execute(prompt)` -- Calls OpenAI chat completions API to run agent. Timeout: 300s, retries: 2, model: `gpt-4.1`.
+   - `AgentRunner.execute(prompt)` -- Calls OpenAI chat completions API to run agent. Timeout: 300s, retries: 2, model: `gpt-5.2`.
    - `GitService.commit()` -- Commits changes with agent attribution.
-   - `TeachingEngine.check()` -- Surfaces teaching moments (deduped per concept per session). Falls back to OpenAI GPT-4.1 mini.
+   - `TeachingEngine.check()` -- Surfaces teaching moments (deduped per concept per session). Falls back to OpenAI GPT-5.2.
 3. `TestRunner.runTests()` -- Runs `pytest tests/ -v --cov=src`. Parses output. Timeout: 120s.
 4. `HardwareService.flash()` -- If ESP32 target: detect USB, compile with `py_compile`, flash via `mpremote`. Timeout: 60s.
 

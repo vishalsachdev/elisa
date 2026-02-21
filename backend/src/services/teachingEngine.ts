@@ -92,7 +92,7 @@ export class TeachingEngine {
     const prompt = teachingUserPrompt(eventType, eventDetails, nuggetType || 'software');
 
     const response = await this.client.chat.completions.create({
-      model: process.env.TEACHING_MODEL || process.env.OPENAI_MODEL || 'gpt-4.1-mini',
+      model: process.env.TEACHING_MODEL || process.env.OPENAI_MODEL || 'gpt-5.2',
       max_completion_tokens: 300,
       temperature: 0.2,
       messages: [

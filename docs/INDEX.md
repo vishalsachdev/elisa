@@ -82,7 +82,7 @@ Block-based visual programming IDE where kids build software by snapping togethe
 | `backend/src/services/skillRunner.ts` | Step-by-step SkillPlan execution with user interaction |
 | `backend/src/services/teachingEngine.ts` | Age-appropriate learning moments (curriculum + OpenAI) |
 | `backend/src/services/portalService.ts` | MCP + CLI portal adapters with command allowlist |
-| `backend/src/services/narratorService.ts` | Generates narrator messages for build events (OpenAI GPT-4.1 mini) |
+| `backend/src/services/narratorService.ts` | Generates narrator messages for build events (OpenAI GPT-5.2) |
 | `backend/src/services/permissionPolicy.ts` | Auto-resolves agent permission requests based on policy rules |
 
 ### Phases

@@ -212,13 +212,13 @@ All text fields support `{{key}}` template syntax for context variable interpola
 
 ## Narrator System
 
-The narrator translates raw build events into kid-friendly commentary via OpenAI GPT-4.1 mini.
+The narrator translates raw build events into kid-friendly commentary via OpenAI GPT-5.2.
 
 - **Trigger events**: `task_started`, `task_completed`, `task_failed`, `agent_message`, `error`, `session_complete`
 - **Moods**: `excited`, `encouraging`, `concerned`, `celebrating`
 - **Rate limit**: Max 1 message per task per 15 seconds
 - **Debounce**: `agent_output` events accumulated per task, translated after 10-second silence
-- **Model**: Configurable via `NARRATOR_MODEL` env var (default: `gpt-4.1-mini`)
+- **Model**: Configurable via `NARRATOR_MODEL` env var (default: `gpt-5.2`)
 
 ---
 

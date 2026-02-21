@@ -71,7 +71,7 @@ export class NarratorService {
   private fallbackIndex = 0;
 
   constructor(model?: string) {
-    this.model = model ?? process.env.NARRATOR_MODEL ?? process.env.OPENAI_MODEL ?? 'gpt-4.1-mini';
+    this.model = model ?? process.env.NARRATOR_MODEL ?? process.env.OPENAI_MODEL ?? 'gpt-5.2';
   }
 
   isTranslatable(eventType: string): boolean {

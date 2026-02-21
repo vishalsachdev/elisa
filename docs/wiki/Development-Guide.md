@@ -53,8 +53,8 @@ npm run dev:electron     # Launches backend, frontend, and Electron window
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
 | `OPENAI_API_KEY` | Yes | — | OpenAI API/SDK access |
-| `OPENAI_MODEL` | No | `gpt-4.1` | Override agent model |
-| `NARRATOR_MODEL` | No | `gpt-4.1-mini` | Override narrator model |
+| `OPENAI_MODEL` | No | `gpt-5.2` | Override agent model |
+| `NARRATOR_MODEL` | No | `gpt-5.2` | Override narrator model |
 | `CORS_ORIGIN` | No | `http://localhost:5173` | Override CORS origin in dev |
 | `PORT` | No | `8000` | Backend port |
 

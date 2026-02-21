@@ -65,7 +65,7 @@ AgentRunner.execute(prompt, options)
 **Configuration:**
 - Timeout: 300 seconds per agent
 - Retries: Up to 2 retries on failure
-- Model: `gpt-4.1` (configurable via `OPENAI_MODEL`)
+- Model: `gpt-5.2` (configurable via `OPENAI_MODEL`)
 - Max turns: 20
 
 ## Streaming-Parallel Execution
@@ -123,7 +123,7 @@ After 3 denied permissions per task, the policy escalates to the user.
 
 ## Task Decomposition (MetaPlanner)
 
-The MetaPlanner calls OpenAI (default `gpt-4.1`) to decompose a NuggetSpec into a task DAG:
+The MetaPlanner calls OpenAI (default `gpt-5.2`) to decompose a NuggetSpec into a task DAG:
 
 1. Receives the full NuggetSpec as input
 2. Applies decomposition rules (4–12 tasks, each 1–5 minutes, no cycles)
@@ -146,7 +146,7 @@ The TeachingEngine surfaces contextual learning moments during builds:
 
 1. **Fast-path lookup**: Maps build events to a curriculum of pre-defined concepts
 2. **Deduplication**: Each concept shown only once per session
-3. **API fallback**: Falls back to OpenAI GPT-4.1 mini for dynamic generation
+3. **API fallback**: Falls back to OpenAI GPT-5.2 for dynamic generation
 4. **Target audience**: Ages 8–14
 
 Concepts covered: source control, testing, decomposition, code review, architecture, hardware (GPIO, LoRa, compilation, flashing).
@@ -155,7 +155,7 @@ Concepts covered: source control, testing, decomposition, code review, architect
 
 The NarratorService translates raw build events into kid-friendly commentary:
 
-- Uses OpenAI GPT-4.1 mini (`NARRATOR_MODEL` env var)
+- Uses OpenAI GPT-5.2 (`NARRATOR_MODEL` env var)
 - 4 moods: excited, encouraging, concerned, celebrating
 - Rate limited: max 1 message per task per 15 seconds
 - `agent_output` events debounced (10-second silence window)
