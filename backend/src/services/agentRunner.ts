@@ -3,10 +3,11 @@
 import OpenAI from 'openai';
 import type { AgentResult } from '../models/session.js';
 import { withTimeout } from '../utils/withTimeout.js';
-import { MAX_TURNS_DEFAULT } from '../utils/constants.js';
+import { AGENT_MAX_COMPLETION_TOKENS_DEFAULT, MAX_TURNS_DEFAULT } from '../utils/constants.js';
 import { getOpenAIClient } from '../utils/openaiClient.js';
 
 export const CONTEXT_WINDOW_EXCEEDED_MARKER = 'CONTEXT_WINDOW_EXCEEDED:';
+export const OUTPUT_LIMIT_REACHED_MARKER = 'OUTPUT_LIMIT_REACHED:';
 
 function isContextWindowExceededError(err: any): boolean {
   const code = String(err?.code ?? '').toLowerCase();
@@ -16,6 +17,17 @@ function isContextWindowExceededError(err: any): boolean {
     code === 'context_length_exceeded' ||
     type === 'context_length_exceeded' ||
     /context length|context window|too many tokens|max(?:imum)? context|prompt (?:is )?too long|context_window_exceeded/.test(message)
+  );
+}
+
+function isOutputLimitError(err: any): boolean {
+  const code = String(err?.code ?? '').toLowerCase();
+  const type = String(err?.type ?? '').toLowerCase();
+  const message = String(err?.message ?? '').toLowerCase();
+  return (
+    code === 'max_tokens' ||
+    type === 'max_tokens' ||
+    /max_tokens|model output limit|output limit was reached|could not finish the message|try again with higher max_tokens|completion length/i.test(message)
   );
 }
 
@@ -32,6 +44,7 @@ export interface AgentRunnerParams {
   timeout?: number;
   model?: string;
   maxTurns?: number;
+  maxCompletionTokens?: number;
   mcpServers?: Array<{ name: string; command: string; args?: string[]; env?: Record<string, string> }>;
   allowedTools?: string[];
   abortSignal?: AbortSignal;
@@ -54,6 +67,7 @@ export class AgentRunner {
       timeout = 300,
       model = process.env.OPENAI_MODEL || 'gpt-5.2',
       maxTurns = MAX_TURNS_DEFAULT,
+      maxCompletionTokens = AGENT_MAX_COMPLETION_TOKENS_DEFAULT,
       mcpServers,
       allowedTools,
     } = params;
@@ -78,6 +92,7 @@ export class AgentRunner {
           onOutput,
           model,
           maxTurns,
+          maxCompletionTokens,
           mcpServers,
           allowedTools,
           abortController,
@@ -105,6 +120,15 @@ export class AgentRunner {
           outputTokens: 0,
         };
       }
+      if (isOutputLimitError(err)) {
+        return {
+          success: false,
+          summary: `${OUTPUT_LIMIT_REACHED_MARKER} Response exceeded max completion tokens`,
+          costUsd: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        };
+      }
       return {
         success: false,
         summary: String(err.message || err),
@@ -123,6 +147,7 @@ export class AgentRunner {
     onOutput: (taskId: string, content: string) => Promise<void>,
     model: string,
     maxTurns: number,
+    maxCompletionTokens: number,
     mcpServers?: Array<{ name: string; command: string; args?: string[]; env?: Record<string, string> }>,
     allowedTools?: string[],
     abortController?: AbortController,
@@ -148,7 +173,7 @@ export class AgentRunner {
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.2,
-      max_completion_tokens: 4000,
+      max_completion_tokens: maxCompletionTokens,
     }, abortController ? { signal: abortController.signal } : undefined);
 
     const text = response.choices[0]?.message?.content ?? '';

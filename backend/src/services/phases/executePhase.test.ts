@@ -1005,6 +1005,83 @@ describe('context-window retry behavior', () => {
   });
 });
 
+describe('output-limit retry behavior', () => {
+  it('increases maxCompletionTokens after output-limit failure', async () => {
+    const oldFallback = process.env.OPENAI_FALLBACK_MODEL;
+    try {
+      process.env.OPENAI_FALLBACK_MODEL = 'gpt-4.1';
+      const executeMock = vi.fn()
+        .mockResolvedValueOnce({
+          success: false,
+          summary: 'OUTPUT_LIMIT_REACHED: Response exceeded max completion tokens',
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd: 0,
+        })
+        .mockResolvedValueOnce(makeSuccessResult());
+
+      const task = makeTask('task-1', 'Build UI', 'Builder Bot');
+      const agent = makeAgent('Builder Bot');
+      const deps = makeDeps(executeMock, { tasks: [task], agents: [agent] });
+      const ctx = makeCtx();
+      const phase = new ExecutePhase(deps);
+
+      await phase.execute(ctx);
+
+      expect(executeMock).toHaveBeenCalledTimes(2);
+      const firstCallTokens = executeMock.mock.calls[0][0].maxCompletionTokens as number;
+      const secondCallTokens = executeMock.mock.calls[1][0].maxCompletionTokens as number;
+      expect(secondCallTokens).toBeGreaterThan(firstCallTokens);
+      const secondPrompt = executeMock.mock.calls[1][0].prompt as string;
+      expect(secondPrompt).toContain('Response Length Constraint');
+      expect(secondPrompt).toContain('COMPACT CONTEXT MODE');
+      expect(executeMock.mock.calls[1][0].model).toBe('gpt-4.1');
+    } finally {
+      process.env.OPENAI_FALLBACK_MODEL = oldFallback;
+    }
+  });
+
+  it('sticks to fallback model for subsequent tasks after first output-limit failure', async () => {
+    const oldPrimary = process.env.OPENAI_MODEL;
+    const oldFallback = process.env.OPENAI_FALLBACK_MODEL;
+    try {
+      process.env.OPENAI_MODEL = 'gpt-5.2';
+      process.env.OPENAI_FALLBACK_MODEL = 'gpt-4.1';
+      const executeMock = vi.fn()
+        // task-1 attempt 1: output limit failure on primary model
+        .mockResolvedValueOnce({
+          success: false,
+          summary: 'OUTPUT_LIMIT_REACHED: Response exceeded max completion tokens',
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd: 0,
+        })
+        // task-1 retry: success on fallback
+        .mockResolvedValueOnce(makeSuccessResult({ summary: 'Recovered on fallback model' }))
+        // task-2 first attempt: should already use fallback model
+        .mockResolvedValueOnce(makeSuccessResult({ summary: 'Task 2 completed' }));
+
+      const task1 = makeTask('task-1', 'Build UI', 'Builder Bot');
+      const task2 = makeTask('task-2', 'Write tests', 'Test Bot', ['task-1']);
+      const builder = makeAgent('Builder Bot', 'builder');
+      const tester = makeAgent('Test Bot', 'tester');
+      const deps = makeDeps(executeMock, { tasks: [task1, task2], agents: [builder, tester] });
+      const ctx = makeCtx();
+      const phase = new ExecutePhase(deps);
+
+      await phase.execute(ctx);
+
+      expect(executeMock).toHaveBeenCalledTimes(3);
+      expect(executeMock.mock.calls[0][0].model).toBe('gpt-5.2');
+      expect(executeMock.mock.calls[1][0].model).toBe('gpt-4.1');
+      expect(executeMock.mock.calls[2][0].model).toBe('gpt-4.1');
+    } finally {
+      process.env.OPENAI_MODEL = oldPrimary;
+      process.env.OPENAI_FALLBACK_MODEL = oldFallback;
+    }
+  });
+});
+
 // ============================================================
 // sanitizePlaceholder (#71)
 // ============================================================

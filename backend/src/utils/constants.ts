@@ -1,7 +1,7 @@
 /** Shared constants for magic numbers used across the backend. */
 
 /** Default OpenAI model used by agents and meta-planner. */
-export const DEFAULT_MODEL = 'gpt-4.1';
+export const DEFAULT_MODEL = 'gpt-5.2';
 
 /** Agent execution timeout in seconds. */
 export const AGENT_TIMEOUT_SECONDS = 300;
@@ -44,3 +44,15 @@ export const MAX_TURNS_DEFAULT = 25;
 
 /** Additional turns granted per retry attempt. */
 export const MAX_TURNS_RETRY_INCREMENT = 10;
+
+/** Default max completion tokens per agent response. */
+export const AGENT_MAX_COMPLETION_TOKENS_DEFAULT = 4000;
+
+/** Additional completion tokens granted per retry after output-limit failures. */
+export const AGENT_MAX_COMPLETION_TOKENS_RETRY_INCREMENT = 4000;
+
+/** Hard cap for completion tokens per agent response retry. */
+export const AGENT_MAX_COMPLETION_TOKENS_CAP = 12000;
+
+/** Fallback model used when a model repeatedly hits output-token limits. */
+export const OUTPUT_LIMIT_FALLBACK_MODEL = 'gpt-4.1';

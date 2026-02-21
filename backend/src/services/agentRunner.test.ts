@@ -134,4 +134,20 @@ describe('AgentRunner', () => {
     expect(result.success).toBe(false);
     expect(result.summary).toContain('CONTEXT_WINDOW_EXCEEDED');
   });
+
+  it('maps output-limit errors to a stable marker summary', async () => {
+    mockCreate.mockRejectedValue(new Error('Could not finish the message because max_tokens or model output limit was reached. Please try again with higher max_tokens.'));
+
+    const runner = new AgentRunner();
+    const result = await runner.execute({
+      taskId: 'test-1',
+      prompt: 'hello',
+      systemPrompt: 'you are a bot',
+      onOutput: vi.fn().mockResolvedValue(undefined),
+      workingDir: '/tmp/test',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.summary).toContain('OUTPUT_LIMIT_REACHED');
+  });
 });

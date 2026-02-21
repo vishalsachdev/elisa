@@ -9,7 +9,7 @@ import * as builderAgent from '../../prompts/builderAgent.js';
 import * as testerAgent from '../../prompts/testerAgent.js';
 import * as reviewerAgent from '../../prompts/reviewerAgent.js';
 import { AgentRunner } from '../agentRunner.js';
-import { CONTEXT_WINDOW_EXCEEDED_MARKER } from '../agentRunner.js';
+import { CONTEXT_WINDOW_EXCEEDED_MARKER, OUTPUT_LIMIT_REACHED_MARKER } from '../agentRunner.js';
 import { GitService } from '../gitService.js';
 import { TeachingEngine } from '../teachingEngine.js';
 import { PortalService } from '../portalService.js';
@@ -18,7 +18,17 @@ import { PermissionPolicy } from '../permissionPolicy.js';
 import { ContextManager } from '../../utils/contextManager.js';
 import { TokenTracker, DEFAULT_RESERVED_PER_TASK } from '../../utils/tokenTracker.js';
 import { TaskDAG } from '../../utils/dag.js';
-import { DEFAULT_MODEL, MAX_CONCURRENT_TASKS, PREDECESSOR_WORD_CAP as PRED_WORD_CAP, MAX_TURNS_DEFAULT, MAX_TURNS_RETRY_INCREMENT } from '../../utils/constants.js';
+import {
+  AGENT_MAX_COMPLETION_TOKENS_CAP,
+  AGENT_MAX_COMPLETION_TOKENS_DEFAULT,
+  AGENT_MAX_COMPLETION_TOKENS_RETRY_INCREMENT,
+  DEFAULT_MODEL,
+  OUTPUT_LIMIT_FALLBACK_MODEL,
+  MAX_CONCURRENT_TASKS,
+  PREDECESSOR_WORD_CAP as PRED_WORD_CAP,
+  MAX_TURNS_DEFAULT,
+  MAX_TURNS_RETRY_INCREMENT,
+} from '../../utils/constants.js';
 
 interface PromptModule {
   SYSTEM_PROMPT: string;
@@ -78,6 +88,7 @@ export class ExecutePhase {
   private commits: CommitInfo[] = [];
   private taskSummaries: Record<string, string> = {};
   private gitMutex = Promise.resolve();
+  private preferOutputFallbackModel = false;
 
   constructor(deps: ExecuteDeps) {
     this.deps = deps;
@@ -392,24 +403,45 @@ export class ExecutePhase {
 
     while (!success && retryCount <= maxRetries) {
       const mcpServers = this.deps.portalService.getMcpServers();
-      const useCompactPrompt = retryCount > 0 && this.isContextWindowFailure(lastFailureSummary);
+      const useOutputLimitRetry = retryCount > 0 && this.isOutputLimitFailure(lastFailureSummary);
+      const useCompactPrompt = retryCount > 0 && (
+        this.isContextWindowFailure(lastFailureSummary) || useOutputLimitRetry
+      );
       let prompt = buildPrompt(useCompactPrompt);
       if (retryCount > 0) {
         const retryContext = [
           `## Retry Attempt ${retryCount}`,
           'A previous attempt at this task did not complete successfully.',
           'The workspace already contains partial work from that attempt.',
+          useOutputLimitRetry
+            ? 'Previous failure hit output-token limits. Keep your response compact and action-focused.'
+            : '',
           useCompactPrompt
             ? 'Previous failure exceeded context length. Skip non-essential context and act directly.'
             : 'Skip orientation — do NOT re-read files you can see in the manifest and digest.',
           'Go straight to implementation.',
-        ].join('\n');
+        ].filter(Boolean).join('\n');
         prompt = retryContext + '\n\n' + prompt;
+      }
+      if (useOutputLimitRetry) {
+        prompt +=
+          '\n\n## Response Length Constraint\n' +
+          'Keep output under 300 words. Provide only concrete file-level changes and next actions. Do NOT include full code dumps.';
       }
       if (retryCount > 0 && retryRulesSuffix) {
         prompt += retryRulesSuffix;
       }
       const maxTurns = MAX_TURNS_DEFAULT + (retryCount * MAX_TURNS_RETRY_INCREMENT);
+      const maxCompletionTokens = useOutputLimitRetry
+        ? Math.min(
+            AGENT_MAX_COMPLETION_TOKENS_DEFAULT + (retryCount * AGENT_MAX_COMPLETION_TOKENS_RETRY_INCREMENT),
+            AGENT_MAX_COMPLETION_TOKENS_CAP,
+          )
+        : AGENT_MAX_COMPLETION_TOKENS_DEFAULT;
+      const primaryModel = process.env.OPENAI_MODEL || DEFAULT_MODEL;
+      const fallbackModel = process.env.OPENAI_FALLBACK_MODEL || OUTPUT_LIMIT_FALLBACK_MODEL;
+      const useFallbackModel = this.preferOutputFallbackModel || useOutputLimitRetry;
+      const model = useFallbackModel ? fallbackModel : primaryModel;
       const resolvedSystemPrompt = systemPrompt.replaceAll('{max_turns}', String(maxTurns));
       result = await this.deps.agentRunner.execute({
         taskId,
@@ -418,8 +450,9 @@ export class ExecutePhase {
         onOutput: this.makeOutputHandler(ctx, agentName),
         onQuestion: this.makeQuestionHandler(ctx, taskId),
         workingDir: ctx.nuggetDir,
-        model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+        model,
         maxTurns,
+        maxCompletionTokens,
         allowedTools: [
           'Read', 'Write', 'Edit', 'MultiEdit',
           'Glob', 'Grep', 'LS',
@@ -435,6 +468,9 @@ export class ExecutePhase {
         this.taskSummaries[taskId] = result.summary;
       } else {
         lastFailureSummary = result?.summary ?? '';
+        if (this.isOutputLimitFailure(lastFailureSummary)) {
+          this.preferOutputFallbackModel = true;
+        }
         retryCount++;
         if (retryCount <= maxRetries) {
           await ctx.send({
@@ -632,6 +668,12 @@ export class ExecutePhase {
     if (!summary) return false;
     if (summary.startsWith(CONTEXT_WINDOW_EXCEEDED_MARKER)) return true;
     return /context length|context window|too many tokens|max(?:imum)? context|prompt (?:is )?too long|context_window_exceeded/i.test(summary);
+  }
+
+  private isOutputLimitFailure(summary: string): boolean {
+    if (!summary) return false;
+    if (summary.startsWith(OUTPUT_LIMIT_REACHED_MARKER)) return true;
+    return /max_tokens|model output limit|output limit was reached|could not finish the message|higher max_tokens|completion length/i.test(summary);
   }
 
   // -- Human Gate --
