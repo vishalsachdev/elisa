@@ -36,6 +36,8 @@ const LS_SKILLS = 'elisa:skills';
 const LS_RULES = 'elisa:rules';
 const LS_PORTALS = 'elisa:portals';
 const LS_WORKSPACE_PATH = 'elisa:workspace-path';
+const LS_BOTTOM_BAR_HEIGHT = 'elisa:bottom-bar-height';
+const LS_MISSION_SIDE_WIDTH = 'elisa:mission-side-width';
 
 function readLocalStorageJson<T>(key: string): T | null {
   try {
@@ -45,6 +47,17 @@ function readLocalStorageJson<T>(key: string): T | null {
     // corrupted data -- ignore
   }
   return null;
+}
+
+function readLocalStorageNumber(key: string, fallback: number): number {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 export default function App() {
@@ -94,6 +107,14 @@ export default function App() {
     () => localStorage.getItem(LS_WORKSPACE_PATH),
   );
   const [dirPickerOpen, setDirPickerOpen] = useState(false);
+  const [bottomBarHeight, setBottomBarHeight] = useState<number>(() => {
+    const saved = readLocalStorageNumber(LS_BOTTOM_BAR_HEIGHT, 180);
+    return Math.max(120, Math.min(420, saved));
+  });
+  const [missionSideWidthPct, setMissionSideWidthPct] = useState<number>(() => {
+    const saved = readLocalStorageNumber(LS_MISSION_SIDE_WIDTH, 40);
+    return Math.max(25, Math.min(60, saved));
+  });
 
   // The latest workspace JSON for saving nuggets
   const [workspaceJson, setWorkspaceJson] = useState<Record<string, unknown> | null>(null);
@@ -396,6 +417,36 @@ export default function App() {
     setBoardDetectedModalOpen(false);
   }, [boardInfo]);
 
+  const startBottomResize = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = bottomBarHeight;
+    const onMove = (ev: MouseEvent) => {
+      const delta = startY - ev.clientY;
+      const next = Math.max(120, Math.min(420, startHeight + delta));
+      setBottomBarHeight(next);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const handleMissionResize = useCallback((nextPct: number) => {
+    const bounded = Math.max(25, Math.min(60, nextPct));
+    setMissionSideWidthPct(bounded);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LS_BOTTOM_BAR_HEIGHT, String(bottomBarHeight));
+  }, [bottomBarHeight]);
+
+  useEffect(() => {
+    localStorage.setItem(LS_MISSION_SIDE_WIDTH, String(missionSideWidthPct));
+  }, [missionSideWidthPct]);
+
   return (
     <div className="flex flex-col h-screen atelier-bg noise-overlay text-atelier-text">
       {/* Header: Logo | MainTabBar | GO button | ReadinessBadge */}
@@ -432,70 +483,86 @@ export default function App() {
         onChange={handleOpenNugget}
       />
 
-      {/* Main area: tabbed content */}
-      <main className="flex flex-1 overflow-hidden relative z-10">
-        {/* Workspace tab: sidebar + BlockCanvas (always mounted, hidden when not active) */}
-        <div className={activeMainTab === 'workspace' ? 'flex w-full h-full' : 'hidden'}>
-          <WorkspaceSidebar
-            onOpen={() => fileInputRef.current?.click()}
-            onSave={handleSaveNugget}
-            onSkills={() => setSkillsModalOpen(true)}
-            onRules={() => setRulesModalOpen(true)}
-            onPortals={() => setPortalsModalOpen(true)}
-            onExamples={() => {
-              if (uiState !== 'design') return;
-              setExamplePickerOpen(true);
-            }}
-            onHelp={() => setHelpOpen(true)}
-            onFolder={handleOpenFolder}
-            saveDisabled={!workspaceJson}
-            examplesDisabled={uiState !== 'design'}
-            workspacePath={workspacePath}
+      <div className="flex flex-1 flex-col overflow-hidden relative z-10">
+        {/* Main area: tabbed content */}
+        <main className="flex flex-1 overflow-hidden">
+          {/* Workspace tab: sidebar + BlockCanvas (always mounted, hidden when not active) */}
+          <div className={activeMainTab === 'workspace' ? 'flex w-full h-full' : 'hidden'}>
+            <WorkspaceSidebar
+              onOpen={() => fileInputRef.current?.click()}
+              onSave={handleSaveNugget}
+              onSkills={() => setSkillsModalOpen(true)}
+              onRules={() => setRulesModalOpen(true)}
+              onPortals={() => setPortalsModalOpen(true)}
+              onExamples={() => {
+                if (uiState !== 'design') return;
+                setExamplePickerOpen(true);
+              }}
+              onHelp={() => setHelpOpen(true)}
+              onFolder={handleOpenFolder}
+              saveDisabled={!workspaceJson}
+              examplesDisabled={uiState !== 'design'}
+              workspacePath={workspacePath}
+            />
+            <div className="flex-1 relative">
+              <BlockCanvas
+                ref={blockCanvasRef}
+                onWorkspaceChange={handleWorkspaceChange}
+                readOnly={uiState !== 'design'}
+                skills={skills}
+                rules={rules}
+                portals={portals}
+                initialWorkspace={initialWorkspace}
+              />
+            </div>
+          </div>
+
+          {/* Mission Control tab */}
+          {activeMainTab === 'mission' && (
+            <div className="w-full h-full">
+              <MissionControlPanel
+                tasks={tasks}
+                agents={agents}
+                events={events}
+                narratorMessages={narratorMessages}
+                spec={spec}
+                uiState={uiState}
+                isPlanning={isPlanning}
+                sidePanelWidthPct={missionSideWidthPct}
+                onResizeSidePanel={handleMissionResize}
+              />
+            </div>
+          )}
+        </main>
+
+        {/* Bottom bar resize handle */}
+        <div
+          className="h-1.5 cursor-row-resize bg-border-subtle/50 hover:bg-accent-lavender/70 transition-colors"
+          onMouseDown={startBottomResize}
+          role="separator"
+          aria-label="Resize status bar"
+          aria-orientation="horizontal"
+        />
+
+        {/* Bottom bar */}
+        <div className="shrink-0" style={{ height: bottomBarHeight }}>
+          <BottomBar
+            commits={commits}
+            testResults={testResults}
+            coveragePct={coveragePct}
+            teachingMoments={teachingMoments}
+            serialLines={serialLines}
+            uiState={uiState}
+            tasks={tasks}
+            agents={agents}
+            deployProgress={deployProgress ?? null}
+            deployChecklist={deployChecklist ?? null}
+            tokenUsage={tokenUsage}
+            boardInfo={boardInfo}
+            height={bottomBarHeight}
           />
-          <div className="flex-1 relative">
-            <BlockCanvas
-              ref={blockCanvasRef}
-              onWorkspaceChange={handleWorkspaceChange}
-              readOnly={uiState !== 'design'}
-              skills={skills}
-              rules={rules}
-              portals={portals}
-              initialWorkspace={initialWorkspace}
-            />
-          </div>
         </div>
-
-        {/* Mission Control tab */}
-        {activeMainTab === 'mission' && (
-          <div className="w-full h-full">
-            <MissionControlPanel
-              tasks={tasks}
-              agents={agents}
-              events={events}
-              narratorMessages={narratorMessages}
-              spec={spec}
-              uiState={uiState}
-              isPlanning={isPlanning}
-            />
-          </div>
-        )}
-      </main>
-
-      {/* Bottom bar */}
-      <BottomBar
-        commits={commits}
-        testResults={testResults}
-        coveragePct={coveragePct}
-        teachingMoments={teachingMoments}
-        serialLines={serialLines}
-        uiState={uiState}
-        tasks={tasks}
-        agents={agents}
-        deployProgress={deployProgress ?? null}
-        deployChecklist={deployChecklist ?? null}
-        tokenUsage={tokenUsage}
-        boardInfo={boardInfo}
-      />
+      </div>
 
       {/* Human gate modal */}
       {gateRequest && sessionId && (
@@ -631,7 +698,7 @@ export default function App() {
 
       {/* Workspace path indicator */}
       {(nuggetDir || workspacePath) && uiState !== 'design' && (
-        <div className="fixed bottom-32 right-4 z-30">
+        <div className="fixed right-4 z-30" style={{ bottom: bottomBarHeight + 16 }}>
           <div className="glass-panel rounded-lg px-3 py-1.5 text-xs text-atelier-text-secondary max-w-xs truncate"
                title={nuggetDir || workspacePath || ''}>
             Output: {nuggetDir || workspacePath}

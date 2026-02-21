@@ -22,6 +22,7 @@ interface Props {
   deployChecklist: Array<{ name: string; prompt: string }> | null;
   tokenUsage: TokenUsage;
   boardInfo: BoardInfo | null;
+  height?: number;
 }
 
 type Tab = 'Timeline' | 'Tests' | 'Board' | 'Learn' | 'Progress' | 'Tokens';
@@ -29,6 +30,7 @@ type Tab = 'Timeline' | 'Tests' | 'Board' | 'Learn' | 'Progress' | 'Tokens';
 export default function BottomBar({
   commits, testResults, coveragePct, teachingMoments, serialLines,
   uiState, tasks, agents, deployProgress, deployChecklist, tokenUsage, boardInfo,
+  height,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('Timeline');
 
@@ -49,7 +51,7 @@ export default function BottomBar({
   const tabs: Tab[] = ['Timeline', 'Tests', 'Board', 'Learn', 'Progress', 'Tokens'];
 
   return (
-    <div className="relative z-10 glass-panel border-x-0 border-b-0">
+    <div className="relative z-10 glass-panel border-x-0 border-b-0 h-full flex flex-col" style={height ? { height } : undefined}>
       <div className="flex items-center gap-1 px-4 py-1.5 border-b border-border-subtle">
         {tabs.map((tab) => (
           <button
@@ -65,7 +67,7 @@ export default function BottomBar({
           </button>
         ))}
       </div>
-      <div className="h-32 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {activeTab === 'Timeline' && <GitTimeline commits={commits} />}
         {activeTab === 'Tests' && <TestResults results={testResults} coveragePct={coveragePct} uiState={uiState} tasks={tasks} agents={agents} />}
         {activeTab === 'Board' && <BoardOutput serialLines={serialLines} boardInfo={boardInfo} />}
