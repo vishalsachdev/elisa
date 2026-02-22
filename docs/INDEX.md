@@ -111,6 +111,9 @@ Block-based visual programming IDE where kids build software by snapping togethe
 | `backend/src/utils/safeEnv.ts` | Sanitized process.env copy (strips OPENAI_API_KEY) |
 | `backend/src/utils/findFreePort.ts` | Scans for available TCP port from a starting port |
 | `backend/src/utils/anthropicClient.ts` | Legacy compatibility alias (OpenAI-backed) |
+| `backend/src/utils/pricing.ts` | OpenAI model pricing lookup and cost calculation |
+| `backend/src/utils/toolDefinitions.ts` | OpenAI-compatible function schemas for agent tools |
+| `backend/src/utils/toolExecutor.ts` | Sandboxed tool execution (Bash, Read, Write, Edit, Glob, Grep) |
 
 ### Prompts
 

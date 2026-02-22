@@ -83,3 +83,21 @@ No bug fix is complete without a regression test.
 - NuggetSpec validated server-side via Zod schema (`backend/src/utils/specValidator.ts`). Portal commands restricted to allowlist.
 - Up to 3 tasks execute concurrently (streaming-parallel via Promise.race pool) when DAG dependencies allow. Token budget enforced (default 500k).
 - SessionLogger writes per-session logs to `.elisa/logs/` in nugget workspace.
+
+## Current Focus
+
+Tool calling integration — native tool execution within agent runner.
+
+## Roadmap
+
+- [x] Add native tool calling with streaming to agent runner
+- [ ] Wire tool call events to frontend (show tool calls in comms feed)
+- [ ] Add tool call metrics to token tracker UI
+- [ ] Expand tool set (web search, file upload, etc.)
+
+## Session Log
+
+### 2026-02-21
+
+- Completed: Native tool calling with streaming, sandboxed tool executor, pricing module, tool definitions
+- Next: Wire tool call events to frontend UI
