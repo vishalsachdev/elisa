@@ -448,6 +448,8 @@ export class ExecutePhase {
         prompt,
         systemPrompt: resolvedSystemPrompt,
         onOutput: this.makeOutputHandler(ctx, agentName),
+        onToolCall: this.makeToolCallHandler(ctx, agentName),
+        onToolResult: this.makeToolResultHandler(ctx, agentName),
         onQuestion: this.makeQuestionHandler(ctx, taskId),
         workingDir: ctx.nuggetDir,
         model,
@@ -490,6 +492,8 @@ export class ExecutePhase {
         result.inputTokens,
         result.outputTokens,
         result.costUsd,
+        result.cachedInputTokens ?? 0,
+        result.reasoningTokens ?? 0,
       );
       ctx.logger?.tokenUsage(agentName, result.inputTokens, result.outputTokens, result.costUsd);
       await ctx.send({
@@ -497,6 +501,8 @@ export class ExecutePhase {
         agent_name: agentName,
         input_tokens: result.inputTokens,
         output_tokens: result.outputTokens,
+        cached_input_tokens: result.cachedInputTokens ?? 0,
+        reasoning_tokens: result.reasoningTokens ?? 0,
         cost_usd: result.costUsd ?? 0,
       });
       if (this.deps.tokenTracker.checkWarning()) {
@@ -848,6 +854,36 @@ export class ExecutePhase {
           await ctx.send({ type: 'narrator_message', from: 'Elisa', text: msg.text, mood: msg.mood, related_task_id: taskId });
         });
       }
+    };
+  }
+
+  private makeToolCallHandler(
+    ctx: PhaseContext,
+    agentName: string,
+  ): (taskId: string, toolName: string, args: string) => Promise<void> {
+    return async (taskId: string, toolName: string, args: string) => {
+      await ctx.send({
+        type: 'agent_tool_call',
+        task_id: taskId,
+        agent_name: agentName,
+        tool_name: toolName,
+        arguments: args,
+      });
+    };
+  }
+
+  private makeToolResultHandler(
+    ctx: PhaseContext,
+    agentName: string,
+  ): (taskId: string, toolName: string, result: string) => Promise<void> {
+    return async (taskId: string, toolName: string, result: string) => {
+      await ctx.send({
+        type: 'agent_tool_result',
+        task_id: taskId,
+        agent_name: agentName,
+        tool_name: toolName,
+        result: result.length > 500 ? result.slice(0, 500) + '...' : result,
+      });
     };
   }
 

@@ -57,6 +57,7 @@ describe('AgentRunner', () => {
       systemPrompt: 'you are a bot',
       onOutput,
       workingDir: '/tmp/test',
+      enableStreaming: false,
     });
 
     expect(onOutput).toHaveBeenCalledWith('test-1', 'Hello world');
@@ -76,10 +77,11 @@ describe('AgentRunner', () => {
       systemPrompt: 'you are a bot',
       onOutput: vi.fn().mockResolvedValue(undefined),
       workingDir: '/tmp/test',
+      enableStreaming: false,
     });
 
     expect(result.success).toBe(true);
-    expect(result.costUsd).toBe(0);
+    expect(result.costUsd).toBeGreaterThan(0);
     expect(result.inputTokens).toBe(500);
     expect(result.outputTokens).toBe(200);
   });
@@ -149,5 +151,91 @@ describe('AgentRunner', () => {
 
     expect(result.success).toBe(false);
     expect(result.summary).toContain('OUTPUT_LIMIT_REACHED');
+  });
+
+  it('streams content and accumulates tokens when enableStreaming is true', async () => {
+    // Mock an async iterable for streaming
+    const streamChunks = [
+      { choices: [{ delta: { content: 'Hello' } }] },
+      { choices: [{ delta: { content: ' world' } }] },
+      { choices: [{ delta: {} }], usage: { prompt_tokens: 100, completion_tokens: 50 } },
+    ];
+
+    const mockStream = {
+      [Symbol.asyncIterator]: async function* () {
+        for (const chunk of streamChunks) {
+          yield chunk;
+        }
+      },
+    };
+
+    mockCreate.mockResolvedValue(mockStream);
+
+    const onOutput = vi.fn().mockResolvedValue(undefined);
+    const runner = new AgentRunner();
+    const result = await runner.execute({
+      taskId: 'test-1',
+      prompt: 'hello',
+      systemPrompt: 'you are a bot',
+      onOutput,
+      workingDir: '/tmp/test',
+      enableStreaming: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.inputTokens).toBe(100);
+    expect(result.outputTokens).toBe(50);
+    expect(result.summary).toContain('Hello world');
+  });
+
+  it('executes tool calls and returns results in the agentic loop', async () => {
+    // First call returns a tool call
+    const toolCallResponse = {
+      choices: [{
+        message: {
+          content: null,
+          tool_calls: [{
+            id: 'call_123',
+            type: 'function',
+            function: { name: 'Read', arguments: '{"file_path": "test.txt"}' },
+          }],
+        },
+      }],
+      usage: { prompt_tokens: 100, completion_tokens: 50 },
+    };
+
+    // Second call returns final content (no more tool calls)
+    const finalResponse = {
+      choices: [{ message: { content: 'Done reading the file' } }],
+      usage: { prompt_tokens: 150, completion_tokens: 30 },
+    };
+
+    mockCreate
+      .mockResolvedValueOnce(toolCallResponse)
+      .mockResolvedValueOnce(finalResponse);
+
+    const onToolCall = vi.fn().mockResolvedValue(undefined);
+    const onToolResult = vi.fn().mockResolvedValue(undefined);
+    const runner = new AgentRunner();
+    const result = await runner.execute({
+      taskId: 'test-1',
+      prompt: 'read test.txt',
+      systemPrompt: 'you are a bot',
+      onOutput: vi.fn().mockResolvedValue(undefined),
+      onToolCall,
+      onToolResult,
+      workingDir: '/tmp/test',
+      allowedTools: ['Read'],
+      enableStreaming: false,
+      enableToolCalling: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.inputTokens).toBe(250); // 100 + 150
+    expect(result.outputTokens).toBe(80); // 50 + 30
+    expect(onToolCall).toHaveBeenCalledWith('test-1', 'Read', '{"file_path": "test.txt"}');
+    expect(onToolResult).toHaveBeenCalled();
+    expect(result.toolCalls).toHaveLength(1);
+    expect(result.toolCalls![0].name).toBe('Read');
   });
 });

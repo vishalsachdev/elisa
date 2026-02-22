@@ -48,6 +48,17 @@ export interface AgentResult {
   costUsd: number;
   inputTokens: number;
   outputTokens: number;
+  cachedInputTokens?: number;
+  reasoningTokens?: number;
+  toolCalls?: ToolCallRecord[];
+}
+
+export interface ToolCallRecord {
+  id: string;
+  name: string;
+  arguments: string;
+  result?: string;
+  durationMs?: number;
 }
 
 export interface CommitInfo {

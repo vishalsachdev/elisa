@@ -8,10 +8,12 @@ export const DEFAULT_RESERVED_PER_TASK = 50_000;
 export class TokenTracker {
   inputTokens = 0;
   outputTokens = 0;
+  cachedInputTokens = 0;
+  reasoningTokens = 0;
   costUsd = 0;
   readonly maxBudget: number;
   private budgetWarningFired = false;
-  private perAgent: Map<string, { input: number; output: number }> = new Map();
+  private perAgent: Map<string, { input: number; output: number; cached: number; reasoning: number }> = new Map();
   /** Tokens reserved for in-flight tasks that haven't reported actuals yet. */
   reservedTokens = 0;
 
@@ -29,15 +31,21 @@ export class TokenTracker {
     inputTokens: number,
     outputTokens: number,
     costUsd = 0,
+    cachedInputTokens = 0,
+    reasoningTokens = 0,
   ): void {
     this.inputTokens += inputTokens;
     this.outputTokens += outputTokens;
+    this.cachedInputTokens += cachedInputTokens;
+    this.reasoningTokens += reasoningTokens;
     this.costUsd += costUsd;
 
-    const prev = this.perAgent.get(agentName) ?? { input: 0, output: 0 };
+    const prev = this.perAgent.get(agentName) ?? { input: 0, output: 0, cached: 0, reasoning: 0 };
     this.perAgent.set(agentName, {
       input: prev.input + inputTokens,
       output: prev.output + outputTokens,
+      cached: prev.cached + cachedInputTokens,
+      reasoning: prev.reasoning + reasoningTokens,
     });
   }
 
@@ -83,10 +91,12 @@ export class TokenTracker {
     return Math.max(0, this.maxBudget - this.total);
   }
 
-  snapshot(): Record<string, any> {
+  snapshot(): Record<string, unknown> {
     return {
       input_tokens: this.inputTokens,
       output_tokens: this.outputTokens,
+      cached_input_tokens: this.cachedInputTokens,
+      reasoning_tokens: this.reasoningTokens,
       total: this.total,
       reserved_tokens: this.reservedTokens,
       effective_total: this.effectiveTotal,
@@ -95,5 +105,11 @@ export class TokenTracker {
       budget_remaining: this.budgetRemaining,
       per_agent: Object.fromEntries(this.perAgent),
     };
+  }
+
+  /** Percentage of input tokens that were cache hits. */
+  get cacheHitRate(): number {
+    if (this.inputTokens === 0) return 0;
+    return this.cachedInputTokens / this.inputTokens;
   }
 }
