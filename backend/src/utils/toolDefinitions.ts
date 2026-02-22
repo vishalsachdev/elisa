@@ -236,7 +236,10 @@ export function getToolsForAllowedList(
 ): OpenAI.Chat.Completions.ChatCompletionTool[] {
   if (!allowedTools.length) return [];
   const allowedSet = new Set(allowedTools);
-  return TOOL_DEFINITIONS.filter((t) => allowedSet.has(t.function.name));
+  return TOOL_DEFINITIONS.filter((t) => {
+    if (t.type !== 'function') return false;
+    return allowedSet.has(t.function.name);
+  });
 }
 
 /**
@@ -245,7 +248,9 @@ export function getToolsForAllowedList(
 export function getToolMap(): Map<string, OpenAI.Chat.Completions.ChatCompletionTool> {
   const map = new Map<string, OpenAI.Chat.Completions.ChatCompletionTool>();
   for (const tool of TOOL_DEFINITIONS) {
-    map.set(tool.function.name, tool);
+    if (tool.type === 'function') {
+      map.set(tool.function.name, tool);
+    }
   }
   return map;
 }

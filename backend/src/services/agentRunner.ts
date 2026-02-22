@@ -373,15 +373,14 @@ export class AgentRunner {
 
       // Handle usage (comes in final chunk)
       if (chunk.usage) {
+        const usageAny = chunk.usage as unknown as Record<string, unknown>;
+        const promptDetails = usageAny.prompt_tokens_details as Record<string, number> | undefined;
+        const completionDetails = usageAny.completion_tokens_details as Record<string, number> | undefined;
         usage = {
           inputTokens: chunk.usage.prompt_tokens ?? 0,
           outputTokens: chunk.usage.completion_tokens ?? 0,
-          cachedInputTokens: (chunk.usage as Record<string, unknown>).prompt_tokens_details
-            ? ((chunk.usage as Record<string, unknown>).prompt_tokens_details as Record<string, number>).cached_tokens ?? 0
-            : 0,
-          reasoningTokens: (chunk.usage as Record<string, unknown>).completion_tokens_details
-            ? ((chunk.usage as Record<string, unknown>).completion_tokens_details as Record<string, number>).reasoning_tokens ?? 0
-            : 0,
+          cachedInputTokens: promptDetails?.cached_tokens ?? 0,
+          reasoningTokens: completionDetails?.reasoning_tokens ?? 0,
         };
       }
     }
@@ -427,11 +426,13 @@ export class AgentRunner {
       await onOutput(taskId, content);
     }
 
-    const toolCalls = (message?.tool_calls ?? []).map((tc) => ({
-      id: tc.id,
-      name: tc.function.name,
-      arguments: tc.function.arguments,
-    }));
+    const toolCalls = (message?.tool_calls ?? [])
+      .filter((tc): tc is OpenAI.Chat.Completions.ChatCompletionMessageToolCall & { type: 'function' } => tc.type === 'function')
+      .map((tc) => ({
+        id: tc.id,
+        name: tc.function.name,
+        arguments: tc.function.arguments,
+      }));
 
     const usageData = response.usage as Record<string, unknown> | undefined;
     const usage = {

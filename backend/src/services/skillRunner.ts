@@ -70,19 +70,22 @@ export class SkillRunner {
   }
 
   async execute(plan: SkillPlan, parentContext?: SkillContext): Promise<string> {
+    // Use skillId or fall back to skillName for identification
+    const skillId = plan.skillId ?? plan.skillName;
+
     // Cycle detection
-    if (this.callStack.includes(plan.skillId)) {
+    if (this.callStack.includes(skillId)) {
       const msg = `Cycle detected: skill "${plan.skillName}" calls itself (stack: ${this.callStack.join(' -> ')})`;
-      await this.send({ type: 'skill_error', skill_id: plan.skillId, message: msg });
+      await this.send({ type: 'skill_error', skill_id: skillId, message: msg });
       throw new Error(msg);
     }
     if (this.callStack.length >= MAX_DEPTH) {
       const msg = `Max skill depth (${MAX_DEPTH}) exceeded`;
-      await this.send({ type: 'skill_error', skill_id: plan.skillId, message: msg });
+      await this.send({ type: 'skill_error', skill_id: skillId, message: msg });
       throw new Error(msg);
     }
 
-    this.callStack.push(plan.skillId);
+    this.callStack.push(skillId);
 
     const context: SkillContext = {
       entries: {},
@@ -91,24 +94,24 @@ export class SkillRunner {
 
     await this.send({
       type: 'skill_started',
-      skill_id: plan.skillId,
+      skill_id: skillId,
       skill_name: plan.skillName,
     });
 
     let result = '';
 
     try {
-      result = await this.executeSteps(plan.steps, plan.skillId, context);
+      result = await this.executeSteps(plan.steps, skillId, context);
 
       await this.send({
         type: 'skill_completed',
-        skill_id: plan.skillId,
+        skill_id: skillId,
         result,
       });
     } catch (err: any) {
       await this.send({
         type: 'skill_error',
-        skill_id: plan.skillId,
+        skill_id: skillId,
         message: String(err.message || err),
       });
       throw err;

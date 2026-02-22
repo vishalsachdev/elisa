@@ -53,7 +53,7 @@ export type SkillStep =
   | OutputStep;
 
 export interface SkillPlan {
-  skillId: string;
+  skillId?: string;
   skillName: string;
   steps: SkillStep[];
 }

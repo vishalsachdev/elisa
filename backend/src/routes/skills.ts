@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { AgentRunner } from '../services/agentRunner.js';
 import { SkillRunner } from '../services/skillRunner.js';
 import type { SessionStore } from '../services/sessionStore.js';
+import type { SkillPlan } from '../models/skillPlan.js';
 
 // --- Zod schemas for SkillPlan and SkillSpec validation ---
 
@@ -118,8 +119,8 @@ export function createSkillRouter({ store, sendEvent }: SkillRouterDeps): Router
     );
     entry.skillRunner = runner;
 
-    // Run async
-    runner.execute(plan).catch((err) => {
+    // Run async (cast validated plan to SkillPlan - z.lazy causes type loss)
+    runner.execute(plan as SkillPlan).catch((err) => {
       console.error('SkillRunner error:', err);
     }).finally(() => {
       entry.session.state = 'done';
