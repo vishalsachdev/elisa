@@ -37,6 +37,7 @@ Block-based visual programming IDE where kids build software by snapping togethe
 | `scripts/` | Build tooling (esbuild backend bundler, port killer, subdirectory installer) |
 | `docs/` | Product + technical documentation |
 | `support/` | ESP32 firmware binaries |
+| `proxy/` | Cloudflare Worker OpenAI proxy for workshop distribution |
 
 ## Documentation Map
 

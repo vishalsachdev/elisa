@@ -39,11 +39,18 @@ Do NOT update docs for internal implementation changes that don't affect the str
 
 ## Environment Variables
 
-- `ANTHROPIC_API_KEY` -- Required for Claude API/SDK access
-- `CLAUDE_MODEL` -- Override agent model (default: `claude-opus-4-6`)
-- `NARRATOR_MODEL` -- Override narrator model (default: `claude-haiku-4-5-20241022`)
+- `OPENAI_API_KEY` -- Required for OpenAI API access (or dummy value when using proxy)
+- `OPENAI_MODEL` -- Override agent model (default: `gpt-5.2`)
 - `CORS_ORIGIN` -- Override CORS origin in dev mode (default: `http://localhost:5173`)
 - `PORT` -- Backend port (default: 8000)
+
+### Proxy Mode (for workshops)
+
+- `OPENAI_BASE_URL` -- Proxy URL (e.g., `https://elisa-openai-proxy.workers.dev/v1`)
+- `OPENAI_WORKSHOP_CODE` -- Workshop code for proxy auth
+- `OPENAI_STUDENT_ID` -- Optional student ID for usage tracking
+
+See `proxy/README.md` for Cloudflare Worker deployment.
 
 ## Setup and Launch
 
