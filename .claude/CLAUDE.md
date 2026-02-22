@@ -106,5 +106,5 @@ Tool calling integration — native tool execution within agent runner.
 
 ### 2026-02-21
 
-- Completed: Native tool calling with streaming, sandboxed tool executor, pricing module, tool definitions
-- Next: Wire tool call events to frontend UI
+- Completed: Native tool calling with streaming, sandboxed tool executor, pricing module, tool definitions, TypeScript fixes, Cloudflare Worker proxy for workshop distribution
+- Next: **Test proxy deployment** (`cd proxy && npm install && wrangler secret put OPENAI_API_KEY && npm run deploy`), wire tool call events to frontend UI
