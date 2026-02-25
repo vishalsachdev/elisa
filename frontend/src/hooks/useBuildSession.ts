@@ -183,6 +183,10 @@ export function useBuildSession() {
       case 'user_question':
         setQuestionRequest({ task_id: event.task_id, questions: event.questions });
         break;
+      case 'judge_started':
+      case 'judge_result':
+        // Judge events are preserved in the events feed; completion modal reads final result.
+        break;
       case 'session_complete':
         setUiState('done');
         setAgents(prev => prev.map(a => ({ ...a, status: 'done' as const })));

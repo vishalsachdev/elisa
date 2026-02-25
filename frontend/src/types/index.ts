@@ -82,6 +82,36 @@ export interface NarratorMessage {
   timestamp: number;
 }
 
+export interface MemorySuggestion {
+  id: string;
+  kind: 'skill' | 'rule';
+  name: string;
+  prompt: string;
+  category?: 'agent' | 'feature' | 'style' | 'composite';
+  trigger?: 'always' | 'on_task_complete' | 'on_test_fail' | 'before_deploy';
+  rationale: string;
+  confidence: number;
+}
+
+export interface JudgeCheck {
+  id: string;
+  title: string;
+  score: number;
+  max_score: number;
+  passed: boolean;
+  details: string;
+}
+
+export interface JudgeResult {
+  score: number;
+  threshold: number;
+  passed: boolean;
+  checks: JudgeCheck[];
+  blocking_issues: string[];
+  overridden?: boolean;
+  raw_passed?: boolean;
+}
+
 export type WSEvent =
   | { type: 'session_started'; session_id: string }
   | { type: 'planning_started' }
@@ -116,4 +146,6 @@ export type WSEvent =
   | { type: 'narrator_message'; from: string; text: string; mood: 'excited' | 'encouraging' | 'concerned' | 'celebrating'; related_task_id?: string }
   | { type: 'permission_auto_resolved'; task_id: string; permission_type: string; decision: 'approved' | 'denied'; reason: string }
   | { type: 'minion_state_change'; agent_name: string; old_status: string; new_status: string }
-  | { type: 'session_complete'; summary: string };
+  | { type: 'judge_started'; threshold: number }
+  | { type: 'judge_result'; score: number; threshold: number; passed: boolean; checks: JudgeCheck[]; blocking_issues: string[] }
+  | { type: 'session_complete'; summary: string; suggestions?: MemorySuggestion[]; judge?: JudgeResult };

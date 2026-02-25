@@ -6,6 +6,7 @@ import type { PhaseContext, SendEvent } from './types.js';
 import { maybeTeach } from './types.js';
 import { MetaPlanner } from '../metaPlanner.js';
 import { TeachingEngine } from '../teachingEngine.js';
+import { NuggetMemoryService } from '../nuggetMemoryService.js';
 import { TaskDAG } from '../../utils/dag.js';
 
 export interface PlanResult {
@@ -20,10 +21,16 @@ export interface PlanResult {
 export class PlanPhase {
   private metaPlanner: MetaPlanner;
   private teachingEngine: TeachingEngine;
+  private nuggetMemory: NuggetMemoryService;
 
-  constructor(metaPlanner: MetaPlanner, teachingEngine: TeachingEngine) {
+  constructor(
+    metaPlanner: MetaPlanner,
+    teachingEngine: TeachingEngine,
+    nuggetMemory: NuggetMemoryService = new NuggetMemoryService(),
+  ) {
     this.metaPlanner = metaPlanner;
     this.teachingEngine = teachingEngine;
+    this.nuggetMemory = nuggetMemory;
   }
 
   async execute(ctx: PhaseContext, spec: Record<string, any>): Promise<PlanResult> {
@@ -33,7 +40,10 @@ export class PlanPhase {
 
     const nuggetType = (ctx.session.spec ?? {}).nugget?.type ?? 'software';
 
-    const plan = await this.metaPlanner.plan(spec);
+    const memoryContext = this.nuggetMemory.getPlannerContext(spec, 3);
+    const plan = memoryContext
+      ? await this.metaPlanner.plan(spec, { memoryContext })
+      : await this.metaPlanner.plan(spec);
 
     const tasks = plan.tasks;
     const agents = plan.agents;

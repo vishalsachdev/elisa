@@ -8,6 +8,7 @@ import { PlanPhase } from './planPhase.js';
 import type { PhaseContext } from './types.js';
 import { MetaPlanner } from '../metaPlanner.js';
 import { TeachingEngine } from '../teachingEngine.js';
+import { NuggetMemoryService } from '../nuggetMemoryService.js';
 import { TaskDAG } from '../../utils/dag.js';
 
 vi.mock('../metaPlanner.js');
@@ -39,12 +40,16 @@ const SIMPLE_PLAN = {
 describe('PlanPhase', () => {
   let metaPlanner: MetaPlanner;
   let teachingEngine: TeachingEngine;
+  let nuggetMemory: NuggetMemoryService;
   let tmpDir: string;
 
   beforeEach(() => {
     vi.restoreAllMocks();
     metaPlanner = new MetaPlanner();
     teachingEngine = new TeachingEngine();
+    nuggetMemory = {
+      getPlannerContext: vi.fn().mockReturnValue(null),
+    } as unknown as NuggetMemoryService;
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'planphase-test-'));
     vi.mocked(metaPlanner.plan).mockResolvedValue(SIMPLE_PLAN);
     vi.mocked(teachingEngine.getMoment).mockResolvedValue(null);
@@ -56,7 +61,7 @@ describe('PlanPhase', () => {
 
   it('calls metaPlanner.plan() and builds DAG from returned tasks', async () => {
     const ctx = makeCtx({ nuggetDir: tmpDir });
-    const phase = new PlanPhase(metaPlanner, teachingEngine);
+    const phase = new PlanPhase(metaPlanner, teachingEngine, nuggetMemory);
     const spec = { nugget: { type: 'software' } };
 
     const result = await phase.execute(ctx, spec);
@@ -71,7 +76,7 @@ describe('PlanPhase', () => {
 
   it('sends planning_started then plan_ready events in order', async () => {
     const ctx = makeCtx({ nuggetDir: tmpDir });
-    const phase = new PlanPhase(metaPlanner, teachingEngine);
+    const phase = new PlanPhase(metaPlanner, teachingEngine, nuggetMemory);
 
     await phase.execute(ctx, {});
 
@@ -94,7 +99,7 @@ describe('PlanPhase', () => {
     vi.mocked(metaPlanner.plan).mockResolvedValue(circularPlan);
 
     const ctx = makeCtx({ nuggetDir: tmpDir });
-    const phase = new PlanPhase(metaPlanner, teachingEngine);
+    const phase = new PlanPhase(metaPlanner, teachingEngine, nuggetMemory);
 
     await expect(phase.execute(ctx, {})).rejects.toThrow('Circular dependencies');
 
@@ -105,7 +110,7 @@ describe('PlanPhase', () => {
 
   it('writes dag.json to nuggetDir', async () => {
     const ctx = makeCtx({ nuggetDir: tmpDir });
-    const phase = new PlanPhase(metaPlanner, teachingEngine);
+    const phase = new PlanPhase(metaPlanner, teachingEngine, nuggetMemory);
 
     await phase.execute(ctx, {});
 
@@ -118,7 +123,7 @@ describe('PlanPhase', () => {
 
   it('sets session.state to planning', async () => {
     const ctx = makeCtx({ nuggetDir: tmpDir });
-    const phase = new PlanPhase(metaPlanner, teachingEngine);
+    const phase = new PlanPhase(metaPlanner, teachingEngine, nuggetMemory);
 
     await phase.execute(ctx, {});
 
@@ -127,7 +132,7 @@ describe('PlanPhase', () => {
 
   it('defaults task status to pending and agent status to idle', async () => {
     const ctx = makeCtx({ nuggetDir: tmpDir });
-    const phase = new PlanPhase(metaPlanner, teachingEngine);
+    const phase = new PlanPhase(metaPlanner, teachingEngine, nuggetMemory);
 
     const result = await phase.execute(ctx, {});
 
@@ -141,7 +146,7 @@ describe('PlanPhase', () => {
 
   it('includes plan_explanation and deployment_target in plan_ready event', async () => {
     const ctx = makeCtx({ nuggetDir: tmpDir });
-    const phase = new PlanPhase(metaPlanner, teachingEngine);
+    const phase = new PlanPhase(metaPlanner, teachingEngine, nuggetMemory);
     const spec = { deployment: { target: 'esp32' } };
 
     await phase.execute(ctx, spec);
@@ -150,5 +155,21 @@ describe('PlanPhase', () => {
     expect(planReady).toBeDefined();
     expect(planReady![0].explanation).toBe('Build then style.');
     expect(planReady![0].deployment_target).toBe('esp32');
+  });
+
+  it('passes memory context into meta planner when available', async () => {
+    const memoryContext = {
+      similar_runs: [{ goal: 'Counter app', similarity: 0.8 }],
+    };
+    vi.mocked(
+      nuggetMemory.getPlannerContext as unknown as (...args: unknown[]) => unknown,
+    ).mockReturnValue(memoryContext);
+
+    const ctx = makeCtx({ nuggetDir: tmpDir });
+    const phase = new PlanPhase(metaPlanner, teachingEngine, nuggetMemory);
+
+    await phase.execute(ctx, {});
+
+    expect(metaPlanner.plan).toHaveBeenCalledWith({}, { memoryContext });
   });
 });

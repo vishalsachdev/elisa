@@ -208,4 +208,12 @@ describe('metaPlannerUser', () => {
     const result = metaPlannerUser(spec);
     expect(result).toContain(`<nugget_spec>\n${spec}\n</nugget_spec>`);
   });
+
+  it('includes memory context tags when provided', () => {
+    const spec = '{"nugget":{"goal":"Timer app"}}';
+    const memory = '{"similar_runs":[{"goal":"Counter app"}]}';
+    const result = metaPlannerUser(spec, memory);
+    expect(result).toContain(`<memory_context>\n${memory}\n</memory_context>`);
+    expect(result).toContain('Use it as hints');
+  });
 });

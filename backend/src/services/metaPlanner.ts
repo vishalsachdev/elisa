@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import { buildMetaPlannerSystem, META_PLANNER_SYSTEM, metaPlannerUser } from '../prompts/metaPlanner.js';
 import { DEFAULT_MODEL } from '../utils/constants.js';
 import { getOpenAIClient } from '../utils/openaiClient.js';
+import type { PlannerMemoryContext } from './nuggetMemoryService.js';
 
 const DEFAULT_AGENTS = [
   {
@@ -30,13 +31,19 @@ export class MetaPlanner {
     this.client = getOpenAIClient();
   }
 
-  async plan(spec: Record<string, any>): Promise<Record<string, any>> {
+  async plan(
+    spec: Record<string, any>,
+    options?: { memoryContext?: PlannerMemoryContext },
+  ): Promise<Record<string, any>> {
     if (!spec.agents) {
       spec = { ...spec, agents: DEFAULT_AGENTS };
     }
 
     const specJson = JSON.stringify(spec, null, 2);
-    const userMsg = metaPlannerUser(specJson);
+    const memoryContextJson = options?.memoryContext
+      ? JSON.stringify(options.memoryContext, null, 2)
+      : undefined;
+    const userMsg = metaPlannerUser(specJson, memoryContextJson);
     const systemPrompt = buildMetaPlannerSystem(spec);
 
     const model = process.env.OPENAI_MODEL || DEFAULT_MODEL;

@@ -27,7 +27,7 @@ import { portalTemplates } from './components/Portals/portalTemplates';
 import { playChime } from './lib/playChime';
 import { saveNuggetFile, loadNuggetFile, downloadBlob } from './lib/nuggetFile';
 import { setAuthToken, authFetch } from './lib/apiClient';
-import type { TeachingMoment } from './types';
+import type { MemorySuggestion, TeachingMoment, WSEvent } from './types';
 import elisaLogo from '../assets/elisa.svg';
 import type { Skill, Rule } from './components/Skills/types';
 import type { Portal } from './components/Portals/types';
@@ -145,6 +145,7 @@ export default function App() {
 
   const [currentToast, setCurrentToast] = useState<TeachingMoment | null>(null);
   const lastToastIndexRef = useRef(-1);
+  const [appliedSuggestionIds, setAppliedSuggestionIds] = useState<string[]>([]);
 
   // Show toast when a new teaching moment arrives
   useEffect(() => {
@@ -293,6 +294,7 @@ export default function App() {
         }
       }
 
+      setAppliedSuggestionIds([]);
       lastToastIndexRef.current = -1;
       setCurrentToast(null);
       await startBuild(
@@ -337,6 +339,7 @@ export default function App() {
 
     lastToastIndexRef.current = -1;
     setCurrentToast(null);
+    setAppliedSuggestionIds([]);
     await startBuild(spec, waitForOpen, wp ?? undefined, workspaceJson ?? undefined, 'continue');
   };
 
@@ -529,6 +532,47 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem(LS_MISSION_SIDE_WIDTH, String(missionSideWidthPct));
   }, [missionSideWidthPct]);
+
+  const completionEvent = events.find(
+    (event): event is Extract<WSEvent, { type: 'session_complete' }> => event.type === 'session_complete',
+  );
+
+  const applyMemorySuggestion = useCallback((suggestion: MemorySuggestion) => {
+    if (suggestion.kind === 'skill') {
+      const category = suggestion.category ?? 'agent';
+      setSkills((prev) => {
+        const exists = prev.some((s) => s.name === suggestion.name && s.prompt === suggestion.prompt);
+        if (exists) return prev;
+        return [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            name: suggestion.name,
+            prompt: suggestion.prompt,
+            category,
+          },
+        ];
+      });
+    } else {
+      const trigger = suggestion.trigger ?? 'always';
+      setRules((prev) => {
+        const exists = prev.some((r) => r.name === suggestion.name && r.prompt === suggestion.prompt);
+        if (exists) return prev;
+        return [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            name: suggestion.name,
+            prompt: suggestion.prompt,
+            trigger,
+          },
+        ];
+      });
+    }
+    setAppliedSuggestionIds((prev) => (
+      prev.includes(suggestion.id) ? prev : [...prev, suggestion.id]
+    ));
+  }, [setSkills, setRules]);
 
   return (
     <div className="flex flex-col h-screen atelier-bg noise-overlay text-atelier-text">
@@ -807,10 +851,60 @@ export default function App() {
           <div className="glass-elevated rounded-2xl shadow-2xl p-8 max-w-md mx-4 text-center animate-float-in">
             <h2 id="done-modal-title" className="text-2xl font-display font-bold mb-4 gradient-text-warm">Nugget Complete!</h2>
             <p className="text-atelier-text-secondary mb-4">
-              {events.find(e => e.type === 'session_complete')?.type === 'session_complete'
-                ? (events.find(e => e.type === 'session_complete') as { type: 'session_complete'; summary: string }).summary
+              {completionEvent
+                ? completionEvent.summary
                 : 'Your nugget has been built successfully.'}
             </p>
+            {completionEvent?.judge && (
+              <div className="text-left mb-4 bg-atelier-surface/60 rounded-xl p-4 border border-border-subtle">
+                <h3 className="text-sm font-semibold text-atelier-text mb-2">
+                  Nugget Judge: {completionEvent.judge.score}/{completionEvent.judge.threshold}
+                </h3>
+                {completionEvent.judge.overridden && (
+                  <p className="text-xs text-yellow-300 mb-2">Shipped with manual override.</p>
+                )}
+                <ul className="space-y-1">
+                  {completionEvent.judge.checks.map((check) => (
+                    <li key={check.id} className="text-xs text-atelier-text-secondary">
+                      {check.passed ? 'PASS' : 'WARN'} {check.title} ({Math.round(check.score)}/{check.max_score}) - {check.details}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {completionEvent?.suggestions && completionEvent.suggestions.length > 0 && (
+              <div className="text-left mb-4 bg-atelier-surface/60 rounded-xl p-4 border border-border-subtle">
+                <h3 className="text-sm font-semibold text-atelier-text mb-2">Reusable ideas from similar nuggets:</h3>
+                <ul className="space-y-2">
+                  {completionEvent.suggestions.map((suggestion) => {
+                    const alreadyAdded = appliedSuggestionIds.includes(suggestion.id);
+                    return (
+                      <li key={suggestion.id} className="rounded-lg border border-border-subtle bg-atelier-surface/50 px-3 py-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-atelier-text">
+                              {suggestion.kind === 'skill' ? 'Skill' : 'Rule'}: {suggestion.name}
+                            </p>
+                            <p className="text-xs text-atelier-text-secondary mt-0.5">{suggestion.rationale}</p>
+                          </div>
+                          <button
+                            onClick={() => applyMemorySuggestion(suggestion)}
+                            disabled={alreadyAdded}
+                            className={`px-2.5 py-1 rounded-md text-xs cursor-pointer transition-colors ${
+                              alreadyAdded
+                                ? 'bg-atelier-surface text-atelier-text-muted border border-border-subtle cursor-default'
+                                : 'go-btn'
+                            }`}
+                          >
+                            {alreadyAdded ? 'Added' : 'Add'}
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
             {teachingMoments.length > 0 && (
               <div className="text-left mb-4 bg-accent-lavender/10 rounded-xl p-4 border border-accent-lavender/20">
                 <h3 className="text-sm font-semibold text-accent-lavender mb-2">What you learned:</h3>
@@ -846,6 +940,7 @@ export default function App() {
               <button
                 onClick={() => {
                   resetToDesign();
+                  setAppliedSuggestionIds([]);
                   setActiveMainTab('workspace');
                 }}
                 className="px-6 py-2.5 rounded-xl text-sm cursor-pointer border border-atelier-text-muted/30 text-atelier-text-secondary hover:bg-atelier-surface/60 hover:text-atelier-text transition-colors"

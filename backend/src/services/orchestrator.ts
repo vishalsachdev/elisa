@@ -10,6 +10,7 @@ import { PlanPhase } from './phases/planPhase.js';
 import { ExecutePhase } from './phases/executePhase.js';
 import { TestPhase } from './phases/testPhase.js';
 import { DeployPhase } from './phases/deployPhase.js';
+import { JudgePhase, type JudgeResult } from './phases/judgePhase.js';
 import { AgentRunner } from './agentRunner.js';
 import { GitService } from './gitService.js';
 import { HardwareService } from './hardwareService.js';
@@ -19,6 +20,7 @@ import { TeachingEngine } from './teachingEngine.js';
 import { TestRunner } from './testRunner.js';
 import { NarratorService } from './narratorService.js';
 import { PermissionPolicy } from './permissionPolicy.js';
+import { NuggetMemoryService, type MemorySuggestion } from './nuggetMemoryService.js';
 import { ContextManager } from '../utils/contextManager.js';
 import { SessionLogger } from '../utils/sessionLogger.js';
 import { TokenTracker } from '../utils/tokenTracker.js';
@@ -54,6 +56,7 @@ export class Orchestrator {
   private tokenTracker = new TokenTracker();
   private teachingEngine = new TeachingEngine();
   private testRunner = new TestRunner();
+  private nuggetMemory = new NuggetMemoryService();
   private hardwareService: HardwareService;
   private portalService: PortalService;
   private narratorService = new NarratorService();
@@ -63,6 +66,7 @@ export class Orchestrator {
   private planPhase: PlanPhase;
   private testPhase: TestPhase;
   private deployPhase: DeployPhase;
+  private judgePhase: JudgePhase;
 
   constructor(
     session: BuildSession,
@@ -79,13 +83,14 @@ export class Orchestrator {
     this.hardwareService = hardwareService ?? new HardwareService();
     this.portalService = new PortalService(this.hardwareService);
 
-    this.planPhase = new PlanPhase(new MetaPlanner(), this.teachingEngine);
+    this.planPhase = new PlanPhase(new MetaPlanner(), this.teachingEngine, this.nuggetMemory);
     this.testPhase = new TestPhase(this.testRunner, this.teachingEngine);
     this.deployPhase = new DeployPhase(
       this.hardwareService,
       this.portalService,
       this.teachingEngine,
     );
+    this.judgePhase = new JudgePhase();
   }
 
   private makeContext(): PhaseContext {
@@ -146,7 +151,8 @@ export class Orchestrator {
       this.commits = executeResult.commits;
 
       // Test
-      await this.testPhase.execute(this.makeContext());
+      const testResult = await this.testPhase.execute(this.makeContext());
+      this.testResults = testResult.testResults;
 
       // Deploy
       const deployCtx = this.makeContext();
@@ -162,8 +168,19 @@ export class Orchestrator {
         this.serialHandle = serialHandle;
       }
 
+      const judgeResult = await this.judgePhase.execute(this.makeContext(), {
+        tasks: planResult.tasks,
+        commits: this.commits,
+        testResults: this.testResults,
+      });
+
+      let judgeOverride = false;
+      if (!judgeResult.passed) {
+        judgeOverride = await this.requestJudgeOverride(judgeResult);
+      }
+
       // Complete
-      await this.complete(planResult.tasks, planResult.agents);
+      await this.complete(planResult.tasks, planResult.agents, judgeResult, judgeOverride);
     } catch (err: any) {
       console.error('Orchestrator error:', err);
       this.logger?.error('Orchestrator error', {
@@ -187,6 +204,8 @@ export class Orchestrator {
   private async complete(
     tasks: Record<string, any>[],
     agents: Record<string, any>[],
+    judgeResult?: JudgeResult,
+    judgeOverride = false,
   ): Promise<void> {
     // Close serial monitor immediately so the COM port is free for the next session
     if (this.serialHandle) {
@@ -213,11 +232,90 @@ export class Orchestrator {
       const unique = [...new Set(conceptNames)];
       summaryParts.push(`Concepts learned: ${unique.join(', ')}`);
     }
+    if (judgeResult) {
+      summaryParts.push(`Judge score: ${judgeResult.score}/${100}.`);
+      if (judgeOverride) summaryParts.push('Shipped with human override.');
+    }
+
+    const suggestions = this.buildMemorySuggestions(tasks, judgeResult, judgeOverride);
 
     await this.send({
       type: 'session_complete',
       summary: summaryParts.join(' '),
+      suggestions,
+      ...(judgeResult
+        ? {
+            judge: {
+              ...judgeResult,
+              overridden: judgeOverride,
+              raw_passed: judgeResult.passed,
+              passed: judgeResult.passed || judgeOverride,
+            },
+          }
+        : {}),
     });
+  }
+
+  private async requestJudgeOverride(judgeResult: JudgeResult): Promise<boolean> {
+    const shortIssues = judgeResult.blocking_issues.slice(0, 3).join(' ');
+    const question = `Nugget Judge scored ${judgeResult.score}/${judgeResult.threshold}. Ship anyway?`;
+    const context =
+      shortIssues ||
+      'Objective checks found quality gaps. Approve to continue shipping, or reject to stop.';
+
+    this.session.state = 'reviewing';
+    await this.send({
+      type: 'human_gate',
+      task_id: '__judge__',
+      question,
+      context,
+    });
+
+    const response = await new Promise<Record<string, any>>((resolve) => {
+      this.gateResolver.current = resolve;
+    });
+    this.gateResolver.current = null;
+
+    if (!response.approved) {
+      throw new Error('Build stopped: Nugget Judge score below threshold and override was rejected.');
+    }
+    return true;
+  }
+
+  private buildMemorySuggestions(
+    tasks: Record<string, any>[],
+    judgeResult?: JudgeResult,
+    judgeOverride = false,
+  ): MemorySuggestion[] {
+    try {
+      this.nuggetMemory.recordRun({
+        sessionId: this.session.id,
+        spec: (this.session.spec ?? {}) as Record<string, unknown>,
+        tasks: tasks as Array<Record<string, unknown>>,
+        commits: this.commits,
+        testResults: this.testResults as Record<string, unknown>,
+        tokenSnapshot: this.tokenTracker.snapshot() as Record<string, unknown>,
+        ...(judgeResult
+          ? {
+              judge: {
+                score: judgeResult.score,
+                threshold: judgeResult.threshold,
+                passed: judgeResult.passed || judgeOverride,
+                overridden: judgeOverride,
+              },
+            }
+          : {}),
+      });
+
+      return this.nuggetMemory.suggestReusablePatterns(
+        (this.session.spec ?? {}) as Record<string, unknown>,
+        4,
+      );
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger?.warn(`Nugget memory update failed: ${message}`);
+      return [];
+    }
   }
 
   /** Signal cancellation to the execution loop and release resources. */

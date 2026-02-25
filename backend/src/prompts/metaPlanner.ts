@@ -210,9 +210,17 @@ export function buildMetaPlannerSystem(spec: Record<string, any>): string {
 /** @deprecated Use buildMetaPlannerSystem(spec) for conditional prompt assembly. */
 export const META_PLANNER_SYSTEM = META_PLANNER_BASE + HARDWARE_SECTION + PORTAL_SECTION + EXAMPLES_SECTION + META_PLANNER_FOOTER;
 
-export function metaPlannerUser(specJson: string): string {
-  return (
+export function metaPlannerUser(specJson: string, memoryContextJson?: string): string {
+  const base =
     "Here is the kid's nugget specification. Decompose it into a task DAG.\n\n" +
-    `<nugget_spec>\n${specJson}\n</nugget_spec>`
+    `<nugget_spec>\n${specJson}\n</nugget_spec>`;
+
+  if (!memoryContextJson) return base;
+
+  return (
+    `${base}\n\n` +
+    'Here is prior nugget memory from similar builds. Use it as hints, not rigid constraints.\n' +
+    'Prefer patterns from successful runs and avoid repeating listed pitfalls.\n\n' +
+    `<memory_context>\n${memoryContextJson}\n</memory_context>`
   );
 }
